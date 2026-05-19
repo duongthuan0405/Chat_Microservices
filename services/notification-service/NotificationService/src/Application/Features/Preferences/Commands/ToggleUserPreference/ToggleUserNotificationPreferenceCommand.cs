@@ -6,27 +6,26 @@ using NotificationService.Application.Persistence;
 using NotificationService.Application.Persistence.Repositories;
 using NotificationService.Domain.Entities;
 
-namespace NotificationService.Application.Features.Preferences.Commands.UpdateUserPreference;
+namespace NotificationService.Application.Features.Preferences.Commands.ToggleUserPreference;
 
-public class UpdateUserNotificationPreferenceCommand : IRequest<UpdateUserNotificationPreferenceCommandResponse>
+public class ToggleUserNotificationPreferenceCommand : IRequest<ToggleUserNotificationPreferenceCommandResponse>
 {
     public Guid UserId { get; set; }
-    public bool EnablePush { get; set; }
 }
 
-public class UpdateUserNotificationPreferenceCommandResponse
+public class ToggleUserNotificationPreferenceCommandResponse
 {
     public Guid UserId { get; set; }
     public bool EnablePush { get; set; }
     public DateTimeOffset UpdatedAt { get; set; }
 }
 
-public class UpdateUserNotificationPreferenceCommandHandler : IRequestHandler<UpdateUserNotificationPreferenceCommand, UpdateUserNotificationPreferenceCommandResponse>
+public class ToggleUserNotificationPreferenceCommandHandler : IRequestHandler<ToggleUserNotificationPreferenceCommand, ToggleUserNotificationPreferenceCommandResponse>
 {
     private readonly INotificationPreferenceRepository _preferenceRepository;
     private readonly IUnitOfWork _unitOfWork;
 
-    public UpdateUserNotificationPreferenceCommandHandler(
+    public ToggleUserNotificationPreferenceCommandHandler(
         INotificationPreferenceRepository preferenceRepository,
         IUnitOfWork unitOfWork)
     {
@@ -34,7 +33,7 @@ public class UpdateUserNotificationPreferenceCommandHandler : IRequestHandler<Up
         _unitOfWork = unitOfWork;
     }
 
-    public async Task<UpdateUserNotificationPreferenceCommandResponse> Handle(UpdateUserNotificationPreferenceCommand request, CancellationToken cancellationToken)
+    public async Task<ToggleUserNotificationPreferenceCommandResponse> Handle(ToggleUserNotificationPreferenceCommand request, CancellationToken cancellationToken)
     {
         try
         {
@@ -44,23 +43,25 @@ public class UpdateUserNotificationPreferenceCommandHandler : IRequestHandler<Up
 
             if (preference == null)
             {
+                // Default is EnablePush = true, so toggling it sets it to FALSE
                 preference = new NotificationPreference.NotificationPreferenceBuilder()
                     .WithUserId(request.UserId)
-                    .WithEnablePush(request.EnablePush)
+                    .WithEnablePush(false)
                     .Build();
 
                 await _preferenceRepository.AddAsync(preference, cancellationToken);
             }
             else
             {
-                preference.EnablePush = request.EnablePush;
+                // Invert the existing EnablePush value
+                preference.EnablePush = !preference.EnablePush;
                 preference.UpdatedAt = DateTimeOffset.UtcNow;
                 await _preferenceRepository.UpdateAsync(preference, cancellationToken);
             }
 
             await _unitOfWork.FinishAsync();
 
-            return new UpdateUserNotificationPreferenceCommandResponse
+            return new ToggleUserNotificationPreferenceCommandResponse
             {
                 UserId = preference.UserId,
                 EnablePush = preference.EnablePush,

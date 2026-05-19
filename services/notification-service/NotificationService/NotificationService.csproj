@@ -7,9 +7,28 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Remove="src\Application\Features\Notifications\**" />
+    <Compile Remove="src\Application\Features\Templates\**" />
+    <Content Remove="src\Application\Features\Notifications\**" />
+    <Content Remove="src\Application\Features\Templates\**" />
+    <EmbeddedResource Remove="src\Application\Features\Notifications\**" />
+    <EmbeddedResource Remove="src\Application\Features\Templates\**" />
+    <None Remove="src\Application\Features\Notifications\**" />
+    <None Remove="src\Application\Features\Templates\**" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="9.0.2" />
     <PackageReference Include="MediatR" Version="12.4.1" />
     <PackageReference Include="FluentValidation.DependencyInjectionExtensions" Version="11.11.0" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="9.0.0">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="9.0.3" />
+    <PackageReference Include="DotNetEnv" Version="3.1.1" />
+    <PackageReference Include="Swashbuckle.AspNetCore" Version="7.2.0" />
+    <PackageReference Include="Serilog.AspNetCore" Version="9.0.0" />
   </ItemGroup>
 
 </Project>
