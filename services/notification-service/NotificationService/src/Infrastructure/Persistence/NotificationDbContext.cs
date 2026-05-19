@@ -11,7 +11,7 @@ public class NotificationDbContext : DbContext
 
     public DbSet<NotificationPreferenceModel> Preferences { get; set; } = null!;
     public DbSet<NotificationTemplateModel> Templates { get; set; } = null!;
-    //public DbSet<NotificationHistoryModel> Histories { get; set; } = null!;
+    public DbSet<NotificationHistoryModel> Histories { get; set; } = null!;
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

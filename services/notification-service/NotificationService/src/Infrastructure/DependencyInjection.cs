@@ -31,7 +31,7 @@ public static class DependencyInjection
         // Register Repositories
         services.AddScoped<INotificationPreferenceRepository, NotificationPreferenceRepository>();
         services.AddScoped<INotificationTemplateRepository, NotificationTemplateRepository>();
-        //services.AddScoped<INotificationHistoryRepository, NotificationHistoryRepository>();
+        services.AddScoped<INotificationHistoryRepository, NotificationHistoryRepository>();
 
         return services;
     }
