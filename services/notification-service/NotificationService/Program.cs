@@ -1,3 +1,4 @@
+using NotificationService.Application;
 
 namespace NotificationService;
 
@@ -12,6 +13,8 @@ public class Program
 
         // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
         builder.Services.AddOpenApi();
+
+        builder.Services.AddApplicationServices();
 
         var app = builder.Build();
 
