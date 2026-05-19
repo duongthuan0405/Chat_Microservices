@@ -8,13 +8,9 @@
 
   <ItemGroup>
     <Compile Remove="src\Application\Features\Notifications\**" />
-    <Compile Remove="src\Application\Features\Templates\**" />
     <Content Remove="src\Application\Features\Notifications\**" />
-    <Content Remove="src\Application\Features\Templates\**" />
     <EmbeddedResource Remove="src\Application\Features\Notifications\**" />
-    <EmbeddedResource Remove="src\Application\Features\Templates\**" />
     <None Remove="src\Application\Features\Notifications\**" />
-    <None Remove="src\Application\Features\Templates\**" />
   </ItemGroup>
 
   <ItemGroup>
