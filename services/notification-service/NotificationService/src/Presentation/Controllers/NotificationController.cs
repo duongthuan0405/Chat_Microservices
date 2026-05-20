@@ -20,9 +20,16 @@ public class NotificationController : ControllerBase
 
     [HttpGet("user/{userId}")]
     public async Task<ActionResult<ApiSuccessResponse<List<NotificationHistoryResponseDto>>>> GetHistoryByUserIdAsync(
-        [FromRoute] Guid userId)
+        [FromRoute] Guid userId,
+        [FromQuery] int pageNumber = 1,
+        [FromQuery] int pageSize = 10)
     {
-        var query = new GetNotificationHistoryByUserIdQuery { UserId = userId };
+        var query = new GetNotificationHistoryByUserIdQuery 
+        { 
+            UserId = userId,
+            PageNumber = pageNumber,
+            PageSize = pageSize
+        };
         var result = await _sender.Send(query);
 
         var response = new List<NotificationHistoryResponseDto>();

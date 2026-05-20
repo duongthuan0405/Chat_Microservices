@@ -27,11 +27,13 @@ public class NotificationHistoryRepository : INotificationHistoryRepository
         return model?.ToDomain();
     }
 
-    public async Task<List<NotificationHistory>> GetByUserIdAsync(Guid userId, CancellationToken cancellationToken = default)
+    public async Task<List<NotificationHistory>> GetByUserIdAsync(Guid userId, int pageNumber, int pageSize, CancellationToken cancellationToken = default)
     {
         var models = await _context.Histories
             .Where(x => x.UserId == userId)
             .OrderByDescending(x => x.CreatedAt)
+            .Skip((pageNumber - 1) * pageSize)
+            .Take(pageSize)
             .ToListAsync(cancellationToken);
 
         return models.Select(x => x.ToDomain()).ToList();

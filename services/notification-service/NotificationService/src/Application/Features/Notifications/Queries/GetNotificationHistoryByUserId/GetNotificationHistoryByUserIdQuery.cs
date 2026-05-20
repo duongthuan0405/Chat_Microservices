@@ -11,6 +11,8 @@ namespace NotificationService.Application.Features.Notifications.Queries.GetNoti
 public class GetNotificationHistoryByUserIdQuery : IRequest<List<GetNotificationHistoryByUserIdQueryResponse>>
 {
     public Guid UserId { get; set; }
+    public int PageNumber { get; set; } = 1;
+    public int PageSize { get; set; } = 10;
 }
 
 public class GetNotificationHistoryByUserIdQueryResponse
@@ -38,7 +40,7 @@ public class GetNotificationHistoryByUserIdQueryHandler : IRequestHandler<GetNot
 
     public async Task<List<GetNotificationHistoryByUserIdQueryResponse>> Handle(GetNotificationHistoryByUserIdQuery request, CancellationToken cancellationToken)
     {
-        var list = await _historyRepository.GetByUserIdAsync(request.UserId, cancellationToken);
+        var list = await _historyRepository.GetByUserIdAsync(request.UserId, request.PageNumber, request.PageSize, cancellationToken);
         var response = new List<GetNotificationHistoryByUserIdQueryResponse>();
 
         foreach (var item in list)
