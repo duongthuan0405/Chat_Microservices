@@ -10,6 +10,8 @@ using NotificationService.Infrastructure.ExternalServices;
 using NotificationService.Infrastructure.HealthChecks;
 using NotificationService.Infrastructure.Persistence;
 using NotificationService.Infrastructure.Repositories;
+using NotificationService.Presentation.Consumers.Filters;
+using NotificationService.Presentation.Events;
 
 namespace NotificationService.Infrastructure;
 
@@ -84,6 +86,17 @@ public static class DependencyInjection
                     h.Username(rabbitUser);
                     h.Password(rabbitPass);
                 });
+
+                // Bật tính năng nhận dạng JSON thô (phẳng) không cần bọc envelope của MassTransit cho MỌI tin nhắn
+                cfg.UseRawJsonDeserializer(RawSerializerOptions.AnyMessageType);
+
+                // Đăng ký bộ lọc ghi log tự động cho tất cả tin nhắn MassTransit nhận được
+                cfg.UseConsumeFilter(typeof(LoggingConsumeFilter<>), context);
+
+                // Định cấu hình Exchange Name tùy chỉnh (không phụ thuộc vào namespace C#)
+                cfg.Message<FriendRequestSentIntegrationEvent>(m => m.SetEntityName("friend-request-sent"));
+                cfg.Message<FriendRequestAcceptedIntegrationEvent>(m => m.SetEntityName("friend-request-accepted"));
+                cfg.Message<AddedToGroupChatIntegrationEvent>(m => m.SetEntityName("added-to-group-chat"));
 
                 cfg.ConfigureEndpoints(context);
             });

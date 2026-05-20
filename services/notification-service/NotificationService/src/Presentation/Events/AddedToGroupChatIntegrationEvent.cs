@@ -1,6 +1,6 @@
 using System;
 
-namespace NotificationService.Application.Common.Events;
+namespace NotificationService.Presentation.Events;
 
 public class AddedToGroupChatIntegrationEvent
 {
@@ -8,6 +8,6 @@ public class AddedToGroupChatIntegrationEvent
     public string GroupName { get; set; } = null!;
     public Guid AdderId { get; set; }
     public string AdderName { get; set; } = null!;
-    public Guid AddedUserId { get; set; } // The user who was added (the one to be notified)
+    public Guid AddedUserId { get; set; }
     public DateTime Timestamp { get; set; }
 }

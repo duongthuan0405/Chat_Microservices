@@ -1,6 +1,6 @@
 using System;
 
-namespace NotificationService.Application.Common.Events;
+namespace NotificationService.Presentation.Events;
 
 public class FriendRequestSentIntegrationEvent
 {

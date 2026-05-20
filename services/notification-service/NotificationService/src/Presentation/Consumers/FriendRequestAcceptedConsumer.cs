@@ -2,7 +2,7 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using MassTransit;
 using MediatR;
-using NotificationService.Application.Common.Events;
+using NotificationService.Presentation.Events;
 using NotificationService.Application.Features.Notifications.Commands.SendNotification;
 
 namespace NotificationService.Presentation.Consumers;
