@@ -3,6 +3,14 @@
   "WorkspaceRootPath": "D:\\KTPM2023\\2025_2026_HK2\\SE359_DevOps\\Chat_Microservices\\services\\notification-service\\",
   "Documents": [
     {
+      "AbsoluteMoniker": "D:0:0:{CF9FD0F0-B9C2-54C6-189B-77AA3D46F4C2}|NotificationService\\NotificationService.csproj|d:\\ktpm2023\\2025_2026_hk2\\se359_devops\\chat_microservices\\services\\notification-service\\notificationservice\\src\\presentation\\controllers\\notificationtemplatecontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{CF9FD0F0-B9C2-54C6-189B-77AA3D46F4C2}|NotificationService\\NotificationService.csproj|solutionrelative:notificationservice\\src\\presentation\\controllers\\notificationtemplatecontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{CF9FD0F0-B9C2-54C6-189B-77AA3D46F4C2}|NotificationService\\NotificationService.csproj|d:\\ktpm2023\\2025_2026_hk2\\se359_devops\\chat_microservices\\services\\notification-service\\notificationservice\\src\\presentation\\controllers\\notificationpreferencecontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{CF9FD0F0-B9C2-54C6-189B-77AA3D46F4C2}|NotificationService\\NotificationService.csproj|solutionrelative:notificationservice\\src\\presentation\\controllers\\notificationpreferencecontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
       "AbsoluteMoniker": "D:0:0:{CF9FD0F0-B9C2-54C6-189B-77AA3D46F4C2}|NotificationService\\NotificationService.csproj|d:\\ktpm2023\\2025_2026_hk2\\se359_devops\\chat_microservices\\services\\notification-service\\notificationservice\\src\\presentation\\controllers\\notificationcontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
       "RelativeMoniker": "D:0:0:{CF9FD0F0-B9C2-54C6-189B-77AA3D46F4C2}|NotificationService\\NotificationService.csproj|solutionrelative:notificationservice\\src\\presentation\\controllers\\notificationcontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
@@ -18,7 +26,7 @@
       "DocumentGroups": [
         {
           "DockedWidth": 200,
-          "SelectedChildIndex": 2,
+          "SelectedChildIndex": 1,
           "Children": [
             {
               "$type": "Bookmark",
@@ -26,7 +34,33 @@
             },
             {
               "$type": "Document",
+              "DocumentIndex": 0,
+              "Title": "NotificationTemplateController.cs",
+              "DocumentMoniker": "D:\\KTPM2023\\2025_2026_HK2\\SE359_DevOps\\Chat_Microservices\\services\\notification-service\\NotificationService\\src\\Presentation\\Controllers\\NotificationTemplateController.cs",
+              "RelativeDocumentMoniker": "NotificationService\\src\\Presentation\\Controllers\\NotificationTemplateController.cs",
+              "ToolTip": "D:\\KTPM2023\\2025_2026_HK2\\SE359_DevOps\\Chat_Microservices\\services\\notification-service\\NotificationService\\src\\Presentation\\Controllers\\NotificationTemplateController.cs",
+              "RelativeToolTip": "NotificationService\\src\\Presentation\\Controllers\\NotificationTemplateController.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-05-19T17:13:05.095Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
               "DocumentIndex": 1,
+              "Title": "NotificationPreferenceController.cs",
+              "DocumentMoniker": "D:\\KTPM2023\\2025_2026_HK2\\SE359_DevOps\\Chat_Microservices\\services\\notification-service\\NotificationService\\src\\Presentation\\Controllers\\NotificationPreferenceController.cs",
+              "RelativeDocumentMoniker": "NotificationService\\src\\Presentation\\Controllers\\NotificationPreferenceController.cs",
+              "ToolTip": "D:\\KTPM2023\\2025_2026_HK2\\SE359_DevOps\\Chat_Microservices\\services\\notification-service\\NotificationService\\src\\Presentation\\Controllers\\NotificationPreferenceController.cs",
+              "RelativeToolTip": "NotificationService\\src\\Presentation\\Controllers\\NotificationPreferenceController.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-05-19T17:12:56.184Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 3,
               "Title": "MarkNotificationAsReadCommand.cs",
               "DocumentMoniker": "D:\\KTPM2023\\2025_2026_HK2\\SE359_DevOps\\Chat_Microservices\\services\\notification-service\\NotificationService\\src\\Application\\Features\\Notifications\\Commands\\MarkNotificationAsRead\\MarkNotificationAsReadCommand.cs",
               "RelativeDocumentMoniker": "NotificationService\\src\\Application\\Features\\Notifications\\Commands\\MarkNotificationAsRead\\MarkNotificationAsReadCommand.cs",
@@ -34,18 +68,17 @@
               "RelativeToolTip": "NotificationService\\src\\Application\\Features\\Notifications\\Commands\\MarkNotificationAsRead\\MarkNotificationAsReadCommand.cs",
               "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-05-19T17:03:19.711Z",
-              "EditorCaption": ""
+              "WhenOpened": "2026-05-19T17:03:19.711Z"
             },
             {
               "$type": "Document",
-              "DocumentIndex": 0,
+              "DocumentIndex": 2,
               "Title": "NotificationController.cs",
               "DocumentMoniker": "D:\\KTPM2023\\2025_2026_HK2\\SE359_DevOps\\Chat_Microservices\\services\\notification-service\\NotificationService\\src\\Presentation\\Controllers\\NotificationController.cs",
               "RelativeDocumentMoniker": "NotificationService\\src\\Presentation\\Controllers\\NotificationController.cs",
               "ToolTip": "D:\\KTPM2023\\2025_2026_HK2\\SE359_DevOps\\Chat_Microservices\\services\\notification-service\\NotificationService\\src\\Presentation\\Controllers\\NotificationController.cs",
               "RelativeToolTip": "NotificationService\\src\\Presentation\\Controllers\\NotificationController.cs",
-              "ViewState": "AgIAAA0AAAAAAAAAAAAAwBgAAAA7AAAAAAAAAA==",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAABgAAAA7AAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
               "WhenOpened": "2026-05-19T17:02:48.252Z",
               "EditorCaption": ""

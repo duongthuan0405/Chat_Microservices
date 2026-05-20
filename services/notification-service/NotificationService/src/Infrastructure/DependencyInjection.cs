@@ -87,6 +87,9 @@ public static class DependencyInjection
                     h.Password(rabbitPass);
                 });
 
+                // Cấu hình cơ chế tự động thử lại 6 lần, mỗi lần cách nhau 5 giây khi xử lý gặp lỗi
+                cfg.UseMessageRetry(r => r.Interval(6, TimeSpan.FromSeconds(5)));
+
                 // Bật tính năng nhận dạng JSON thô (phẳng) không cần bọc envelope của MassTransit cho MỌI tin nhắn
                 cfg.UseRawJsonDeserializer(RawSerializerOptions.AnyMessageType);
 
