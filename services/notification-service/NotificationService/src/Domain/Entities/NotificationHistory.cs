@@ -120,10 +120,4 @@ public partial class NotificationHistory
             _sentAt = value;
         }
     }
-
-    public string? ImageUrl
-    {
-        get => _imageUrl;
-        set => _imageUrl = value;
-    }
 }

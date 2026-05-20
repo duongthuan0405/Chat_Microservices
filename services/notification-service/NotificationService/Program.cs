@@ -5,6 +5,7 @@ using NotificationService.Presentation.Extensions;
 using NotificationService.Presentation.Middleware;
 using DotNetEnv;
 using Serilog;
+using Microsoft.Extensions.Hosting;
 
 namespace NotificationService;
 
@@ -53,6 +54,10 @@ public class Program
             .WithName("GetTest");
 
             app.Run();
+        }
+        catch (HostAbortedException)
+        {
+            throw; // Let EF Core design-time host handling execute cleanly
         }
         catch (Exception ex)
         {
