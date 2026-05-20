@@ -5,10 +5,12 @@ using System.Threading.Tasks;
 using MediatR;
 using NotificationService.Application.Common.Utils;
 using NotificationService.Application.Exceptions;
+using NotificationService.Application.ExternalServices;
 using NotificationService.Application.Persistence;
 using NotificationService.Application.Persistence.Repositories;
 using NotificationService.Domain.Entities;
 using NotificationService.Domain.Enums;
+using Serilog;
 
 namespace NotificationService.Application.Features.Notifications.Commands.SendNotification;
 
@@ -37,17 +39,20 @@ public class SendNotificationCommandHandler : IRequestHandler<SendNotificationCo
     private readonly INotificationTemplateRepository _templateRepository;
     private readonly INotificationHistoryRepository _historyRepository;
     private readonly IUnitOfWork _unitOfWork;
+    private readonly ISignalRService _signalRService;
 
     public SendNotificationCommandHandler(
         INotificationPreferenceRepository preferenceRepository,
         INotificationTemplateRepository templateRepository,
         INotificationHistoryRepository historyRepository,
-        IUnitOfWork unitOfWork)
+        IUnitOfWork unitOfWork,
+        ISignalRService signalRService)
     {
         _preferenceRepository = preferenceRepository;
         _templateRepository = templateRepository;
         _historyRepository = historyRepository;
         _unitOfWork = unitOfWork;
+        _signalRService = signalRService;
     }
 
     public async Task<SendNotificationCommandResponse> Handle(SendNotificationCommand request, CancellationToken cancellationToken)
@@ -104,8 +109,7 @@ public class SendNotificationCommandHandler : IRequestHandler<SendNotificationCo
                 };
             }
 
-            // 4. Simulate Delivery Flow
-            // In a live microservice, this is where we push to WebSockets/SignalR/FCM/Email
+            // 4. Delivery Flow via SignalR
             var successHistory = historyBuilder
                 .WithStatus(DeliveryStatus.Sent)
                 .WithSentAt(DateTimeOffset.UtcNow)
@@ -113,6 +117,28 @@ public class SendNotificationCommandHandler : IRequestHandler<SendNotificationCo
 
             await _historyRepository.AddAsync(successHistory, cancellationToken);
             await _unitOfWork.FinishAsync();
+
+            // Try pushing notification via SignalR as an out-of-band side-effect after successful DB persist
+            try
+            {
+                await _signalRService.SendToUserAsync(
+                    request.UserId,
+                    "ReceiveNotification",
+                    new
+                    {
+                        id = successHistory.Id,
+                        userId = successHistory.UserId,
+                        title = successHistory.Title,
+                        content = successHistory.Content,
+                        createdAt = successHistory.CreatedAt
+                    },
+                    cancellationToken);
+            }
+            catch (Exception ex)
+            {
+                // Push failure shouldn't fail the business operation since the history log is safely committed
+                Log.Warning(ex, "Failed to push real-time notification to user {UserId} via SignalR.", request.UserId);
+            }
 
             return new SendNotificationCommandResponse
             {

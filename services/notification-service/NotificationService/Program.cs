@@ -1,5 +1,6 @@
 using NotificationService.Application;
 using NotificationService.Infrastructure;
+using NotificationService.Infrastructure.Hubs;
 using NotificationService.Presentation.Extensions;
 using NotificationService.Presentation.Middleware;
 using DotNetEnv;
@@ -33,23 +34,17 @@ public class Program
             builder.Services.AddApplicationServices();
             builder.Services.AddInfrastructureServices(builder.Configuration);
 
-            // Register Global Exception Handler
-            builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
-            builder.Services.AddProblemDetails();
+            // Register Custom Middlewares
+            builder.Services.AddMiddlewares();
 
             var app = builder.Build();
 
-            // Place Exception Handler at the absolute start of request pipeline
-            app.UseExceptionHandler();
-
-            // Configure the HTTP request pipeline via Extensions
-            app.UseSwaggerServices(app.Environment);
-
-            app.UseHttpsRedirection();
-
-            app.UseAuthorization();
+            // Configure Middleware Pipeline
+            app.UseMiddlewarePipeline();
 
             app.MapControllers();
+
+            app.MapHub<NotificationHub>("/hubs/notifications");
 
             app.MapGet("/test", (HttpContext httpContext) =>
             {
