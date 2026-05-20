@@ -1,4 +1,5 @@
 using System;
+using MassTransit;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -20,7 +21,8 @@ public static class DependencyInjection
         services
             .AddPersistence(configuration)
             .AddRepositories()
-            .AddRealTimeCommunication();
+            .AddRealTimeCommunication()
+            .AddEventBus(configuration);
 
         return services;
     }
@@ -62,6 +64,33 @@ public static class DependencyInjection
         services.AddSignalR();
         services.AddSingleton<IUserIdProvider, CustomUserIdProvider>();
         services.AddScoped<ISignalRService, SignalRService>();
+
+        return services;
+    }
+
+    private static IServiceCollection AddEventBus(this IServiceCollection services, IConfiguration configuration)
+    {
+        var rabbitHost = Environment.GetEnvironmentVariable("RABBITMQ_HOST") ?? "localhost";
+        var rabbitPort = Environment.GetEnvironmentVariable("RABBITMQ_PORT") ?? "5672";
+        var rabbitUser = Environment.GetEnvironmentVariable("RABBITMQ_USERNAME") ?? "guest";
+        var rabbitPass = Environment.GetEnvironmentVariable("RABBITMQ_PASSWORD") ?? "guest";
+
+        services.AddMassTransit(x =>
+        {
+            // Register all consumers in the executing assembly
+            x.AddConsumers(typeof(DependencyInjection).Assembly);
+
+            x.UsingRabbitMq((context, cfg) =>
+            {
+                cfg.Host(rabbitHost, ushort.Parse(rabbitPort), "/", h =>
+                {
+                    h.Username(rabbitUser);
+                    h.Password(rabbitPass);
+                });
+
+                cfg.ConfigureEndpoints(context);
+            });
+        });
 
         return services;
     }
