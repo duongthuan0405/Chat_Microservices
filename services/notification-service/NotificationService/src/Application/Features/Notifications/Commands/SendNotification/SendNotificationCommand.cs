@@ -39,20 +39,20 @@ public class SendNotificationCommandHandler : IRequestHandler<SendNotificationCo
     private readonly INotificationTemplateRepository _templateRepository;
     private readonly INotificationHistoryRepository _historyRepository;
     private readonly IUnitOfWork _unitOfWork;
-    private readonly ISignalRService _signalRService;
+    private readonly IRealtimeService _realtimeService;
 
     public SendNotificationCommandHandler(
         INotificationPreferenceRepository preferenceRepository,
         INotificationTemplateRepository templateRepository,
         INotificationHistoryRepository historyRepository,
         IUnitOfWork unitOfWork,
-        ISignalRService signalRService)
+        IRealtimeService realtimeService)
     {
         _preferenceRepository = preferenceRepository;
         _templateRepository = templateRepository;
         _historyRepository = historyRepository;
         _unitOfWork = unitOfWork;
-        _signalRService = signalRService;
+        _realtimeService = realtimeService;
     }
 
     public async Task<SendNotificationCommandResponse> Handle(SendNotificationCommand request, CancellationToken cancellationToken)
@@ -121,7 +121,7 @@ public class SendNotificationCommandHandler : IRequestHandler<SendNotificationCo
             // Try pushing notification via SignalR as an out-of-band side-effect after successful DB persist
             try
             {
-                await _signalRService.SendToUserAsync(
+                await _realtimeService.SendToUserAsync(
                     request.UserId,
                     "ReceiveNotification",
                     new

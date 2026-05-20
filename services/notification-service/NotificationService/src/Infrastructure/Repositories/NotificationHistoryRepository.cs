@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
+using NotificationService.Application.Common.Models;
 using NotificationService.Application.Persistence.Repositories;
 using NotificationService.Domain.Entities;
 using NotificationService.Infrastructure.Persistence;
@@ -27,16 +28,20 @@ public class NotificationHistoryRepository : INotificationHistoryRepository
         return model?.ToDomain();
     }
 
-    public async Task<List<NotificationHistory>> GetByUserIdAsync(Guid userId, int pageNumber, int pageSize, CancellationToken cancellationToken = default)
+    public async Task<PagedResult<NotificationHistory>> GetByUserIdAsync(Guid userId, int pageNumber, int pageSize, CancellationToken cancellationToken = default)
     {
-        var models = await _context.Histories
-            .Where(x => x.UserId == userId)
+        var query = _context.Histories.Where(x => x.UserId == userId);
+
+        var totalCount = await query.CountAsync(cancellationToken);
+
+        var models = await query
             .OrderByDescending(x => x.CreatedAt)
             .Skip((pageNumber - 1) * pageSize)
             .Take(pageSize)
             .ToListAsync(cancellationToken);
 
-        return models.Select(x => x.ToDomain()).ToList();
+        var items = models.Select(x => x.ToDomain()).ToList();
+        return new PagedResult<NotificationHistory>(items, totalCount, pageNumber, pageSize);
     }
 
     public async Task AddAsync(NotificationHistory history, CancellationToken cancellationToken = default)

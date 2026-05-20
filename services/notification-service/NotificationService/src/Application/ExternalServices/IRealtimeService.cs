@@ -4,7 +4,7 @@ using System.Threading.Tasks;
 
 namespace NotificationService.Application.ExternalServices;
 
-public interface ISignalRService
+public interface IRealtimeService
 {
     Task SendToUserAsync(Guid userId, string method, object payload, CancellationToken cancellationToken = default);
 }

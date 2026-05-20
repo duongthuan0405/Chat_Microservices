@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.SignalR;
 using System;
 
-namespace NotificationService.Infrastructure.Hubs;
+namespace NotificationService.Presentation.Hubs;
 
 public class CustomUserIdProvider : IUserIdProvider
 {

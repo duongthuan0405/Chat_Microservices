@@ -1,11 +1,14 @@
 using NotificationService.Application;
 using NotificationService.Infrastructure;
-using NotificationService.Infrastructure.Hubs;
+using NotificationService.Infrastructure.Persistence;
+using NotificationService.Presentation;
+using NotificationService.Presentation.Hubs;
 using NotificationService.Presentation.Extensions;
 using NotificationService.Presentation.Middleware;
 using DotNetEnv;
 using Serilog;
 using Microsoft.Extensions.Hosting;
+using Microsoft.EntityFrameworkCore;
 
 namespace NotificationService;
 
@@ -34,14 +37,21 @@ public class Program
 
             builder.Services.AddApplicationServices();
             builder.Services.AddInfrastructureServices(builder.Configuration);
+            builder.Services.AddPresentationServices();
 
             // Register Custom Middlewares
             builder.Services.AddMiddlewares();
 
             var app = builder.Build();
 
+            // Apply migrations and seed templates on startup if required
+            app.ApplyMigrations(args);
+
             // Configure Middleware Pipeline
             app.UseMiddlewarePipeline();
+
+            // Health Check Endpoint: Kiểm tra toàn diện DB và RabbitMQ
+            app.MapCustomHealthChecks();
 
             app.MapControllers();
 

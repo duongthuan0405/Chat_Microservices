@@ -1,7 +1,11 @@
+using System;
+using System.Linq;
+using System.Threading.Tasks;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
 using NotificationService.Application.Features.Notifications.Commands.MarkNotificationAsRead;
 using NotificationService.Application.Features.Notifications.Queries.GetNotificationHistoryByUserId;
+using NotificationService.Application.Common.Models;
 using NotificationService.Presentation.Common;
 using NotificationService.Presentation.DTOs;
 
@@ -19,7 +23,7 @@ public class NotificationController : ControllerBase
     }
 
     [HttpGet("user/{userId}")]
-    public async Task<ActionResult<ApiSuccessResponse<List<NotificationHistoryResponseDto>>>> GetHistoryByUserIdAsync(
+    public async Task<ActionResult<ApiSuccessResponse<PagedResult<NotificationHistoryResponseDto>>>> GetHistoryByUserIdAsync(
         [FromRoute] Guid userId,
         [FromQuery] int pageNumber = 1,
         [FromQuery] int pageSize = 10)
@@ -32,24 +36,27 @@ public class NotificationController : ControllerBase
         };
         var result = await _sender.Send(query);
 
-        var response = new List<NotificationHistoryResponseDto>();
-        foreach (var item in result)
+        var items = result.Items.Select(item => new NotificationHistoryResponseDto
         {
-            response.Add(new NotificationHistoryResponseDto
-            {
-                Id = item.Id,
-                UserId = item.UserId,
-                Title = item.Title,
-                Content = item.Content,
-                IsRead = item.IsRead,
-                Status = item.Status.ToString(),
-                ErrorMessage = item.ErrorMessage,
-                CreatedAt = item.CreatedAt,
-                SentAt = item.SentAt
-            });
-        }
+            Id = item.Id,
+            UserId = item.UserId,
+            Title = item.Title,
+            Content = item.Content,
+            IsRead = item.IsRead,
+            Status = item.Status.ToString(),
+            ErrorMessage = item.ErrorMessage,
+            CreatedAt = item.CreatedAt,
+            SentAt = item.SentAt
+        }).ToList();
 
-        return Ok(new ApiSuccessResponse<List<NotificationHistoryResponseDto>>(response, "User notification history retrieved successfully."));
+        var response = new PagedResult<NotificationHistoryResponseDto>(
+            items,
+            result.TotalCount,
+            result.PageNumber,
+            result.PageSize
+        );
+
+        return Ok(new ApiSuccessResponse<PagedResult<NotificationHistoryResponseDto>>(response, "User notification history retrieved successfully."));
     }
 
     [HttpPost("{id}/read")]

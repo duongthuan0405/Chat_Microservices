@@ -3,12 +3,13 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using MediatR;
+using NotificationService.Application.Common.Models;
 using NotificationService.Application.Persistence.Repositories;
 using NotificationService.Domain.Enums;
 
 namespace NotificationService.Application.Features.Notifications.Queries.GetNotificationHistoryByUserId;
 
-public class GetNotificationHistoryByUserIdQuery : IRequest<List<GetNotificationHistoryByUserIdQueryResponse>>
+public class GetNotificationHistoryByUserIdQuery : IRequest<PagedResult<GetNotificationHistoryByUserIdQueryResponse>>
 {
     public Guid UserId { get; set; }
     public int PageNumber { get; set; } = 1;
@@ -29,7 +30,7 @@ public class GetNotificationHistoryByUserIdQueryResponse
     public DateTimeOffset? SentAt { get; set; }
 }
 
-public class GetNotificationHistoryByUserIdQueryHandler : IRequestHandler<GetNotificationHistoryByUserIdQuery, List<GetNotificationHistoryByUserIdQueryResponse>>
+public class GetNotificationHistoryByUserIdQueryHandler : IRequestHandler<GetNotificationHistoryByUserIdQuery, PagedResult<GetNotificationHistoryByUserIdQueryResponse>>
 {
     private readonly INotificationHistoryRepository _historyRepository;
 
@@ -38,14 +39,14 @@ public class GetNotificationHistoryByUserIdQueryHandler : IRequestHandler<GetNot
         _historyRepository = historyRepository;
     }
 
-    public async Task<List<GetNotificationHistoryByUserIdQueryResponse>> Handle(GetNotificationHistoryByUserIdQuery request, CancellationToken cancellationToken)
+    public async Task<PagedResult<GetNotificationHistoryByUserIdQueryResponse>> Handle(GetNotificationHistoryByUserIdQuery request, CancellationToken cancellationToken)
     {
-        var list = await _historyRepository.GetByUserIdAsync(request.UserId, request.PageNumber, request.PageSize, cancellationToken);
-        var response = new List<GetNotificationHistoryByUserIdQueryResponse>();
+        var pagedResult = await _historyRepository.GetByUserIdAsync(request.UserId, request.PageNumber, request.PageSize, cancellationToken);
+        var responseItems = new List<GetNotificationHistoryByUserIdQueryResponse>();
 
-        foreach (var item in list)
+        foreach (var item in pagedResult.Items)
         {
-            response.Add(new GetNotificationHistoryByUserIdQueryResponse
+            responseItems.Add(new GetNotificationHistoryByUserIdQueryResponse
             {
                 Id = item.Id,
                 UserId = item.UserId,
@@ -60,6 +61,11 @@ public class GetNotificationHistoryByUserIdQueryHandler : IRequestHandler<GetNot
             });
         }
 
-        return response;
+        return new PagedResult<GetNotificationHistoryByUserIdQueryResponse>(
+            responseItems,
+            pagedResult.TotalCount,
+            pagedResult.PageNumber,
+            pagedResult.PageSize
+        );
     }
 }

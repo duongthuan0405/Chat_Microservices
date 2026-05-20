@@ -23,8 +23,8 @@ public static class MiddlewareExtensions
         // 2. Swagger middleware
         app.UseSwaggerServices(app.Environment);
 
-        // 3. Hướng lưu lượng http sang https
-        app.UseHttpsRedirection();
+        // // 3. Hướng lưu lượng http sang https
+        // app.UseHttpsRedirection();
 
         // 4. Ủy quyền bảo mật
         app.UseAuthorization();

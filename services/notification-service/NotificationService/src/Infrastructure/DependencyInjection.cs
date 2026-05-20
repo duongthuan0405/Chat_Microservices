@@ -1,6 +1,5 @@
 using System;
 using MassTransit;
-using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -8,7 +7,7 @@ using NotificationService.Application.ExternalServices;
 using NotificationService.Application.Persistence;
 using NotificationService.Application.Persistence.Repositories;
 using NotificationService.Infrastructure.ExternalServices;
-using NotificationService.Infrastructure.Hubs;
+using NotificationService.Infrastructure.HealthChecks;
 using NotificationService.Infrastructure.Persistence;
 using NotificationService.Infrastructure.Repositories;
 
@@ -21,7 +20,7 @@ public static class DependencyInjection
         services
             .AddPersistence(configuration)
             .AddRepositories()
-            .AddRealTimeCommunication()
+            .AddServices()
             .AddEventBus(configuration);
 
         return services;
@@ -42,6 +41,10 @@ public static class DependencyInjection
         services.AddDbContext<NotificationDbContext>(options =>
             options.UseNpgsql(connectionString));
 
+        // Register database health check
+        services.AddHealthChecks()
+            .AddCheck<DatabaseHealthCheck>("PostgreSQL", tags: new[] { "ready" });
+
         return services;
     }
 
@@ -57,17 +60,11 @@ public static class DependencyInjection
 
         return services;
     }
-
-    private static IServiceCollection AddRealTimeCommunication(this IServiceCollection services)
+    private static IServiceCollection AddServices(this IServiceCollection services)
     {
-        // Register SignalR & gateway integration services
-        services.AddSignalR();
-        services.AddSingleton<IUserIdProvider, CustomUserIdProvider>();
-        services.AddScoped<ISignalRService, SignalRService>();
-
+        services.AddScoped<IRealtimeService, SignalRRealtimeService>();
         return services;
     }
-
     private static IServiceCollection AddEventBus(this IServiceCollection services, IConfiguration configuration)
     {
         var rabbitHost = Environment.GetEnvironmentVariable("RABBITMQ_HOST") ?? "localhost";
@@ -91,6 +88,10 @@ public static class DependencyInjection
                 cfg.ConfigureEndpoints(context);
             });
         });
+
+        // Register RabbitMQ health check
+        services.AddHealthChecks()
+            .AddCheck<RabbitMqHealthCheck>("RabbitMQ", tags: new[] { "ready" });
 
         return services;
     }
