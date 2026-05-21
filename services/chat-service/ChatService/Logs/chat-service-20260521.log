@@ -197,3 +197,23 @@ VALUES (@p0, @p1, @p2, @p3, @p4, @p5, @p6, @p7);
 2026-05-21 16:53:29.654 +07:00 [INF] Request finished HTTP/1.1 GET http://localhost:5031/favicon.ico - 404 0 null 2.8587ms
 2026-05-21 16:53:29.656 +07:00 [INF] Request reached the end of the middleware pipeline without being handled by application code. Request path: GET http://localhost:5031/favicon.ico, Response status code: 404
 2026-05-21 16:53:46.263 +07:00 [INF] Application is shutting down...
+2026-05-21 19:18:37.894 +07:00 [INF] Now listening on: http://localhost:5031
+2026-05-21 19:18:37.913 +07:00 [INF] Application started. Press Ctrl+C to shut down.
+2026-05-21 19:18:37.914 +07:00 [INF] Hosting environment: Development
+2026-05-21 19:18:37.914 +07:00 [INF] Content root path: D:\KTPM2023\2025_2026_HK2\SE359_DevOps\Chat_Microservices\services\chat-service\ChatService
+2026-05-21 19:18:39.699 +07:00 [INF] Request starting HTTP/1.1 GET http://localhost:5031/ - null null
+2026-05-21 19:18:39.731 +07:00 [INF] Request finished HTTP/1.1 GET http://localhost:5031/ - 404 0 null 33.6675ms
+2026-05-21 19:18:39.742 +07:00 [INF] Request reached the end of the middleware pipeline without being handled by application code. Request path: GET http://localhost:5031/, Response status code: 404
+2026-05-21 19:18:44.524 +07:00 [INF] Request starting HTTP/1.1 GET http://localhost:5031/swagger/index.html - null null
+2026-05-21 19:18:44.568 +07:00 [INF] Request finished HTTP/1.1 GET http://localhost:5031/swagger/index.html - 200 null text/html;charset=utf-8 44.933ms
+2026-05-21 19:18:44.583 +07:00 [INF] Request starting HTTP/1.1 GET http://localhost:5031/swagger/swagger-ui-bundle.js - null null
+2026-05-21 19:18:44.583 +07:00 [INF] Request starting HTTP/1.1 GET http://localhost:5031/swagger/swagger-ui-standalone-preset.js - null null
+2026-05-21 19:18:44.584 +07:00 [INF] Request starting HTTP/1.1 GET http://localhost:5031/swagger/index.js - null null
+2026-05-21 19:18:44.589 +07:00 [INF] Request finished HTTP/1.1 GET http://localhost:5031/swagger/index.js - 200 null application/javascript;charset=utf-8 5.0895ms
+2026-05-21 19:18:44.598 +07:00 [INF] Sending file. Request path: '/swagger-ui-standalone-preset.js'. Physical path: 'N/A'
+2026-05-21 19:18:44.599 +07:00 [INF] Sending file. Request path: '/swagger-ui-bundle.js'. Physical path: 'N/A'
+2026-05-21 19:18:44.601 +07:00 [INF] Request finished HTTP/1.1 GET http://localhost:5031/swagger/swagger-ui-bundle.js - 200 1426050 text/javascript 17.4773ms
+2026-05-21 19:18:44.601 +07:00 [INF] Request finished HTTP/1.1 GET http://localhost:5031/swagger/swagger-ui-standalone-preset.js - 200 230007 text/javascript 17.4447ms
+2026-05-21 19:18:44.692 +07:00 [INF] Request starting HTTP/1.1 GET http://localhost:5031/swagger/v1/swagger.json - null null
+2026-05-21 19:18:44.800 +07:00 [INF] Request finished HTTP/1.1 GET http://localhost:5031/swagger/v1/swagger.json - 200 null application/json;charset=utf-8 108.387ms
+2026-05-21 19:19:16.867 +07:00 [INF] Application is shutting down...

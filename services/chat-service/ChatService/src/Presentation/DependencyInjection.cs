@@ -9,11 +9,19 @@ public static class DependencyInjection
 {
     public static IServiceCollection AddPresentationServices(this IServiceCollection services)
     {
-        services.AddControllers();
+        services.AddControllers()
+            .AddJsonOptions(options =>
+            {
+                options.JsonSerializerOptions.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter());
+            });
         services.AddSwaggerServices();
 
         // Add SignalR and custom User ID Provider
-        services.AddSignalR();
+        services.AddSignalR()
+            .AddJsonProtocol(options =>
+            {
+                options.PayloadSerializerOptions.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter());
+            });
         services.AddSingleton<IUserIdProvider, CustomUserIdProvider>();
 
         return services;
