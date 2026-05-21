@@ -18,6 +18,9 @@ public class Program
 
         var builder = WebApplication.CreateBuilder(args);
 
+        // Configure Serilog Logging via Extension
+        builder.Host.AddSerilogLogging();
+
         // Add services to the container.
         builder.Services.AddAuthorization();
         builder.Services.AddControllers();

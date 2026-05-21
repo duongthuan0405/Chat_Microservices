@@ -74,13 +74,15 @@ public class MessageRepository : IMessageRepository
 
         var latestDbMessages = await _context.Messages
             .Where(x => conversationIds.Contains(x.ConversationId) && !x.IsDeleted)
-            .GroupBy(x => x.ConversationId)
-            .Select(g => g.OrderByDescending(x => x.CreatedAt).FirstOrDefault())
-            .Where(x => x != null)
+            .Where(x => x.Id == _context.Messages
+                .Where(m => m.ConversationId == x.ConversationId && !m.IsDeleted)
+                .OrderByDescending(m => m.CreatedAt)
+                .Select(m => m.Id)
+                .FirstOrDefault())
             .ToListAsync(cancellationToken);
 
         return latestDbMessages
-            .Select(x => MapToDomain(x!))
+            .Select(x => MapToDomain(x))
             .ToDictionary(x => x.ConversationId, x => x);
     }
 
