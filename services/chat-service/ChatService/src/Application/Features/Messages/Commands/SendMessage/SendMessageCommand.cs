@@ -4,6 +4,8 @@ using System.Threading.Tasks;
 using MediatR;
 using ChatService.Domain.Entities;
 using ChatService.Domain.Enums;
+using ChatService.Application.Exceptions;
+using ChatService.Application.ExternalServices;
 using ChatService.Application.Persistence;
 using ChatService.Application.Persistence.Repositories;
 
@@ -31,16 +33,26 @@ public class SendMessageCommandResponse
 public class SendMessageCommandHandler : IRequestHandler<SendMessageCommand, SendMessageCommandResponse>
 {
     private readonly IMessageRepository _messageRepository;
+    private readonly IConversationServiceClient _conversationServiceClient;
     private readonly IUnitOfWork _unitOfWork;
 
-    public SendMessageCommandHandler(IMessageRepository messageRepository, IUnitOfWork unitOfWork)
+    public SendMessageCommandHandler(
+        IMessageRepository messageRepository, 
+        IConversationServiceClient conversationServiceClient,
+        IUnitOfWork unitOfWork)
     {
         _messageRepository = messageRepository;
+        _conversationServiceClient = conversationServiceClient;
         _unitOfWork = unitOfWork;
     }
 
     public async Task<SendMessageCommandResponse> Handle(SendMessageCommand request, CancellationToken cancellationToken)
     {
+        if (!await _conversationServiceClient.IsMemberAsync(request.ConversationId, request.SenderId, cancellationToken))
+        {
+            throw new ForbiddenException("You do not have permission to send a message to this conversation.");
+        }
+
         try
         {
             await _unitOfWork.BeginAsync();
@@ -73,3 +85,4 @@ public class SendMessageCommandHandler : IRequestHandler<SendMessageCommand, Sen
         }
     }
 }
+

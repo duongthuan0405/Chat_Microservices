@@ -3,6 +3,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using MediatR;
 using ChatService.Application.Exceptions;
+using ChatService.Application.ExternalServices;
 using ChatService.Application.Persistence;
 using ChatService.Application.Persistence.Repositories;
 
@@ -25,34 +26,37 @@ public class SoftDeleteMessageCommandHandler : IRequestHandler<SoftDeleteMessage
 {
     private readonly IMessageRepository _messageRepository;
     private readonly IMessageReadStatusRepository _messageReadStatusRepository;
+    private readonly IConversationServiceClient _conversationServiceClient;
     private readonly IUnitOfWork _unitOfWork;
 
     public SoftDeleteMessageCommandHandler(
         IMessageRepository messageRepository,
         IMessageReadStatusRepository messageReadStatusRepository,
+        IConversationServiceClient conversationServiceClient,
         IUnitOfWork unitOfWork)
     {
         _messageRepository = messageRepository;
         _messageReadStatusRepository = messageReadStatusRepository;
+        _conversationServiceClient = conversationServiceClient;
         _unitOfWork = unitOfWork;
     }
 
     public async Task<SoftDeleteMessageCommandResponse> Handle(SoftDeleteMessageCommand request, CancellationToken cancellationToken)
     {
+        var message = await _messageRepository.GetByIdAsync(request.MessageId, cancellationToken);
+        if (message == null)
+        {
+            throw new NotFoundException($"Message with ID '{request.MessageId}' was not found.");
+        }
+
+        if (message.SenderId != request.SenderId)
+        {
+            throw new ForbiddenException("You do not have permission to delete this message.");
+        }
+
         try
         {
             await _unitOfWork.BeginAsync();
-
-            var message = await _messageRepository.GetByIdAsync(request.MessageId, cancellationToken);
-            if (message == null)
-            {
-                throw new NotFoundException($"Message with ID '{request.MessageId}' was not found.");
-            }
-
-            if (message.SenderId != request.SenderId)
-            {
-                throw new ForbiddenException("You do not have permission to delete this message.");
-            }
 
             message.SoftDelete();
             await _messageRepository.UpdateAsync(message, cancellationToken);
@@ -92,3 +96,4 @@ public class SoftDeleteMessageCommandHandler : IRequestHandler<SoftDeleteMessage
         }
     }
 }
+

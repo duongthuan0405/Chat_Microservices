@@ -24,3 +24,5 @@ public class GetMessagesQueryValidator : AbstractValidator<GetMessagesQuery>
     }
 }
 
+
+

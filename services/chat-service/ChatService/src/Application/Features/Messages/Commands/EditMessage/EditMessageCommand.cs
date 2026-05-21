@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using MediatR;
 using ChatService.Domain.Enums;
 using ChatService.Application.Exceptions;
+using ChatService.Application.ExternalServices;
 using ChatService.Application.Persistence;
 using ChatService.Application.Persistence.Repositories;
 
@@ -31,30 +32,35 @@ public class EditMessageCommandResponse
 public class EditMessageCommandHandler : IRequestHandler<EditMessageCommand, EditMessageCommandResponse>
 {
     private readonly IMessageRepository _messageRepository;
+    private readonly IConversationServiceClient _conversationServiceClient;
     private readonly IUnitOfWork _unitOfWork;
 
-    public EditMessageCommandHandler(IMessageRepository messageRepository, IUnitOfWork unitOfWork)
+    public EditMessageCommandHandler(
+        IMessageRepository messageRepository, 
+        IConversationServiceClient conversationServiceClient,
+        IUnitOfWork unitOfWork)
     {
         _messageRepository = messageRepository;
+        _conversationServiceClient = conversationServiceClient;
         _unitOfWork = unitOfWork;
     }
 
     public async Task<EditMessageCommandResponse> Handle(EditMessageCommand request, CancellationToken cancellationToken)
     {
+        var message = await _messageRepository.GetByIdAsync(request.MessageId, cancellationToken);
+        if (message == null)
+        {
+            throw new NotFoundException($"Message with ID '{request.MessageId}' was not found.");
+        }
+
+        if (message.SenderId != request.SenderId)
+        {
+            throw new ForbiddenException("You do not have permission to edit this message.");
+        }
+
         try
         {
             await _unitOfWork.BeginAsync();
-
-            var message = await _messageRepository.GetByIdAsync(request.MessageId, cancellationToken);
-            if (message == null)
-            {
-                throw new NotFoundException($"Message with ID '{request.MessageId}' was not found.");
-            }
-
-            if (message.SenderId != request.SenderId)
-            {
-                throw new ForbiddenException("You do not have permission to edit this message.");
-            }
 
             message.EditContent(request.NewContent);
 
@@ -80,3 +86,4 @@ public class EditMessageCommandHandler : IRequestHandler<EditMessageCommand, Edi
         }
     }
 }
+

@@ -3,9 +3,9 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using MediatR;
-using ChatService.Domain.Entities;
 using ChatService.Domain.Enums;
-using ChatService.Application.Persistence;
+using ChatService.Application.Exceptions;
+using ChatService.Application.ExternalServices;
 using ChatService.Application.Persistence.Repositories;
 
 namespace ChatService.Application.Features.Messages.Queries.GetMessages;
@@ -33,67 +33,28 @@ public class GetMessagesResponse
 public class GetMessagesQueryHandler : IRequestHandler<GetMessagesQuery, List<GetMessagesResponse>>
 {
     private readonly IMessageRepository _messageRepository;
-    private readonly IMessageReadStatusRepository _messageReadStatusRepository;
-    private readonly IUnitOfWork _unitOfWork;
+    private readonly IConversationServiceClient _conversationServiceClient;
 
     public GetMessagesQueryHandler(
         IMessageRepository messageRepository,
-        IMessageReadStatusRepository messageReadStatusRepository,
-        IUnitOfWork unitOfWork)
+        IConversationServiceClient conversationServiceClient)
     {
         _messageRepository = messageRepository;
-        _messageReadStatusRepository = messageReadStatusRepository;
-        _unitOfWork = unitOfWork;
+        _conversationServiceClient = conversationServiceClient;
     }
 
     public async Task<List<GetMessagesResponse>> Handle(GetMessagesQuery request, CancellationToken cancellationToken)
     {
+        if (!await _conversationServiceClient.IsMemberAsync(request.ConversationId, request.UserId, cancellationToken))
+        {
+            throw new ForbiddenException("You do not have permission to view messages in this conversation.");
+        }
+
         var messages = await _messageRepository.GetPagedByConversationIdAsync(
             request.ConversationId,
             request.PageNumber,
             request.PageSize,
             cancellationToken);
-
-        if (request.PageNumber == 1 && messages.Count > 0)
-        {
-            var latestMessage = messages.MaxBy(m => m.CreatedAt);
-
-            if (latestMessage != null)
-            {
-                try
-                {
-                    await _unitOfWork.BeginAsync();
-
-                    var status = await _messageReadStatusRepository.GetByConversationAndUserAsync(
-                        request.ConversationId,
-                        request.UserId,
-                        cancellationToken);
-
-                    if (status == null)
-                    {
-                        status = new MessageReadStatus.MessageReadStatusBuilder()
-                            .WithConversationId(request.ConversationId)
-                            .WithUserId(request.UserId)
-                            .WithLastReadMessageId(latestMessage.Id)
-                            .Build();
-
-                        await _messageReadStatusRepository.AddAsync(status, cancellationToken);
-                    }
-                    else
-                    {
-                        status.UpdateReadStatus(latestMessage.Id);
-                        await _messageReadStatusRepository.UpdateAsync(status, cancellationToken);
-                    }
-
-                    await _unitOfWork.FinishAsync();
-                }
-                catch
-                {
-                    await _unitOfWork.RollbackAsync();
-                    throw;
-                }
-            }
-        }
 
         var responseList = new List<GetMessagesResponse>();
         foreach (var message in messages)
@@ -114,4 +75,5 @@ public class GetMessagesQueryHandler : IRequestHandler<GetMessagesQuery, List<Ge
         return responseList;
     }
 }
+
 
