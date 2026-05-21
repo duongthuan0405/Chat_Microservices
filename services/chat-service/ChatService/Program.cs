@@ -1,3 +1,9 @@
+using ChatService.Application;
+using ChatService.Presentation;
+using ChatService.Presentation.Extensions;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace ChatService;
 
@@ -9,23 +15,20 @@ public class Program
 
         // Add services to the container.
         builder.Services.AddAuthorization();
-
-        // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
+        builder.Services.AddControllers();
         builder.Services.AddOpenApi();
+
+        builder.Services.AddApplicationServices();
+        builder.Services.AddPresentationServices();
+        builder.Services.AddMiddlewares();
 
         var app = builder.Build();
 
-        // Configure the HTTP request pipeline.
-        if (app.Environment.IsDevelopment())
-        {
-            app.MapOpenApi();
-        }
+        // Configure Middleware Pipeline
+        app.UseMiddlewarePipeline();
 
-        //app.UseHttpsRedirection();
+        app.MapControllers();
 
-        app.UseAuthorization();
-
-        
         app.MapGet("/test", (HttpContext httpContext) =>
         {
             return "Hello World! I am Chat Service.";
