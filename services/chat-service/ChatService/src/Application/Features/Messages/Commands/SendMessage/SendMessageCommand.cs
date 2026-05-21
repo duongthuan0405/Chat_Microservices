@@ -35,15 +35,18 @@ public class SendMessageCommandHandler : IRequestHandler<SendMessageCommand, Sen
 {
     private readonly IMessageRepository _messageRepository;
     private readonly IConversationServiceClient _conversationServiceClient;
+    private readonly IMessageHubPublisher _messageHubPublisher;
     private readonly IUnitOfWork _unitOfWork;
 
     public SendMessageCommandHandler(
         IMessageRepository messageRepository, 
         IConversationServiceClient conversationServiceClient,
+        IMessageHubPublisher messageHubPublisher,
         IUnitOfWork unitOfWork)
     {
         _messageRepository = messageRepository;
         _conversationServiceClient = conversationServiceClient;
+        _messageHubPublisher = messageHubPublisher;
         _unitOfWork = unitOfWork;
     }
 
@@ -68,7 +71,7 @@ public class SendMessageCommandHandler : IRequestHandler<SendMessageCommand, Sen
             await _messageRepository.AddAsync(message, cancellationToken);
             await _unitOfWork.FinishAsync();
 
-            return new SendMessageCommandResponse
+            var response = new SendMessageCommandResponse
             {
                 Id = message.Id,
                 ConversationId = message.ConversationId,
@@ -79,6 +82,27 @@ public class SendMessageCommandHandler : IRequestHandler<SendMessageCommand, Sen
                 CreatedAt = message.CreatedAt,
                 UpdatedAt = message.UpdatedAt
             };
+
+            // Broadcast real-time message to the conversation group using the strongly-typed publisher
+            await _messageHubPublisher.PublishReceiveMessageAsync(message.ConversationId, response, cancellationToken);
+
+            // Fetch members of the conversation to broadcast new message notifications (for sidebar updates)
+            var memberIds = await _conversationServiceClient.GetMemberIdsAsync(message.ConversationId, cancellationToken);
+            if (memberIds != null)
+            {
+                var notificationTasks = new List<Task>();
+                foreach (var memberId in memberIds)
+                {
+                    // Don't send sidebar notification to the sender themselves
+                    if (memberId != message.SenderId)
+                    {
+                        notificationTasks.Add(_messageHubPublisher.PublishNewMessageNotificationAsync(memberId, response, cancellationToken));
+                    }
+                }
+                await Task.WhenAll(notificationTasks);
+            }
+
+            return response;
         }
         catch
         {

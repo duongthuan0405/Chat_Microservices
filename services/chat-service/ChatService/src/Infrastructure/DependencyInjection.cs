@@ -58,6 +58,9 @@ public static class DependencyInjection
         // Register Conversation Service Client (External)
         services.AddScoped<IConversationServiceClient, ConversationServiceClient>();
 
+        // Register Strongly-Typed Message Hub Publisher
+        services.AddScoped<IMessageHubPublisher, MessageHubPublisher>();
+
         return services;
     }
 }

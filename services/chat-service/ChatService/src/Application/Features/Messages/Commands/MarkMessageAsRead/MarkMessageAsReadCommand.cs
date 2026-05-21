@@ -30,17 +30,20 @@ public class MarkMessageAsReadCommandHandler : IRequestHandler<MarkMessageAsRead
     private readonly IMessageRepository _messageRepository;
     private readonly IMessageReadStatusRepository _messageReadStatusRepository;
     private readonly IConversationServiceClient _conversationServiceClient;
+    private readonly IMessageHubPublisher _messageHubPublisher;
     private readonly IUnitOfWork _unitOfWork;
 
     public MarkMessageAsReadCommandHandler(
         IMessageRepository messageRepository,
         IMessageReadStatusRepository messageReadStatusRepository,
         IConversationServiceClient conversationServiceClient,
+        IMessageHubPublisher messageHubPublisher,
         IUnitOfWork unitOfWork)
     {
         _messageRepository = messageRepository;
         _messageReadStatusRepository = messageReadStatusRepository;
         _conversationServiceClient = conversationServiceClient;
+        _messageHubPublisher = messageHubPublisher;
         _unitOfWork = unitOfWork;
     }
 
@@ -84,7 +87,7 @@ public class MarkMessageAsReadCommandHandler : IRequestHandler<MarkMessageAsRead
 
             await _unitOfWork.FinishAsync();
 
-            return new MarkMessageAsReadCommandResponse
+            var response = new MarkMessageAsReadCommandResponse
             {
                 Id = status.Id,
                 ConversationId = status.ConversationId,
@@ -92,6 +95,11 @@ public class MarkMessageAsReadCommandHandler : IRequestHandler<MarkMessageAsRead
                 LastReadMessageId = status.LastReadMessageId,
                 ReadAt = status.ReadAt
             };
+
+            // Broadcast real-time message read event using strongly-typed publisher
+            await _messageHubPublisher.PublishMessageReadAsync(status.ConversationId, response, cancellationToken);
+
+            return response;
         }
         catch
         {

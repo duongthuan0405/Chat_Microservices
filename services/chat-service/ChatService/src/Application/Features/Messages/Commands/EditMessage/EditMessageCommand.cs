@@ -8,6 +8,8 @@ using ChatService.Application.ExternalServices;
 using ChatService.Application.Persistence;
 using ChatService.Application.Persistence.Repositories;
 
+using ChatService.Application.ExternalServices;
+
 namespace ChatService.Application.Features.Messages.Commands.EditMessage;
 
 public class EditMessageCommand : IRequest<EditMessageCommandResponse>
@@ -33,15 +35,18 @@ public class EditMessageCommandHandler : IRequestHandler<EditMessageCommand, Edi
 {
     private readonly IMessageRepository _messageRepository;
     private readonly IConversationServiceClient _conversationServiceClient;
+    private readonly IMessageHubPublisher _messageHubPublisher;
     private readonly IUnitOfWork _unitOfWork;
 
     public EditMessageCommandHandler(
         IMessageRepository messageRepository, 
         IConversationServiceClient conversationServiceClient,
+        IMessageHubPublisher messageHubPublisher,
         IUnitOfWork unitOfWork)
     {
         _messageRepository = messageRepository;
         _conversationServiceClient = conversationServiceClient;
+        _messageHubPublisher = messageHubPublisher;
         _unitOfWork = unitOfWork;
     }
 
@@ -67,7 +72,7 @@ public class EditMessageCommandHandler : IRequestHandler<EditMessageCommand, Edi
             await _messageRepository.UpdateAsync(message, cancellationToken);
             await _unitOfWork.FinishAsync();
 
-            return new EditMessageCommandResponse
+            var response = new EditMessageCommandResponse
             {
                 Id = message.Id,
                 ConversationId = message.ConversationId,
@@ -78,6 +83,11 @@ public class EditMessageCommandHandler : IRequestHandler<EditMessageCommand, Edi
                 CreatedAt = message.CreatedAt,
                 UpdatedAt = message.UpdatedAt
             };
+
+            // Broadcast real-time edit event using the strongly-typed publisher
+            await _messageHubPublisher.PublishMessageEditedAsync(message.ConversationId, response, cancellationToken);
+
+            return response;
         }
         catch
         {

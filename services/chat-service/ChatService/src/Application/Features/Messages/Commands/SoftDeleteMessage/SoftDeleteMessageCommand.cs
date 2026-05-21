@@ -7,6 +7,8 @@ using ChatService.Application.ExternalServices;
 using ChatService.Application.Persistence;
 using ChatService.Application.Persistence.Repositories;
 
+using ChatService.Application.ExternalServices;
+
 namespace ChatService.Application.Features.Messages.Commands.SoftDeleteMessage;
 
 public class SoftDeleteMessageCommand : IRequest<SoftDeleteMessageCommandResponse>
@@ -27,17 +29,20 @@ public class SoftDeleteMessageCommandHandler : IRequestHandler<SoftDeleteMessage
     private readonly IMessageRepository _messageRepository;
     private readonly IMessageReadStatusRepository _messageReadStatusRepository;
     private readonly IConversationServiceClient _conversationServiceClient;
+    private readonly IMessageHubPublisher _messageHubPublisher;
     private readonly IUnitOfWork _unitOfWork;
 
     public SoftDeleteMessageCommandHandler(
         IMessageRepository messageRepository,
         IMessageReadStatusRepository messageReadStatusRepository,
         IConversationServiceClient conversationServiceClient,
+        IMessageHubPublisher messageHubPublisher,
         IUnitOfWork unitOfWork)
     {
         _messageRepository = messageRepository;
         _messageReadStatusRepository = messageReadStatusRepository;
         _conversationServiceClient = conversationServiceClient;
+        _messageHubPublisher = messageHubPublisher;
         _unitOfWork = unitOfWork;
     }
 
@@ -82,12 +87,17 @@ public class SoftDeleteMessageCommandHandler : IRequestHandler<SoftDeleteMessage
 
             await _unitOfWork.FinishAsync();
 
-            return new SoftDeleteMessageCommandResponse
+            var response = new SoftDeleteMessageCommandResponse
             {
                 Id = message.Id,
                 ConversationId = message.ConversationId,
                 IsDeleted = message.IsDeleted
             };
+
+            // Broadcast real-time message deleted event using strongly-typed publisher
+            await _messageHubPublisher.PublishMessageDeletedAsync(message.ConversationId, response, cancellationToken);
+
+            return response;
         }
         catch
         {

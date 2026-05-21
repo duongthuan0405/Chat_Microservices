@@ -1,10 +1,12 @@
 using ChatService.Application;
 using ChatService.Infrastructure;
+using ChatService.Infrastructure.Persistence;
 using ChatService.Presentation;
 using ChatService.Presentation.Extensions;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
+using DotNetEnv;
 
 namespace ChatService;
 
@@ -12,6 +14,8 @@ public class Program
 {
     public static void Main(string[] args)
     {
+        Env.Load(".env.development");
+
         var builder = WebApplication.CreateBuilder(args);
 
         // Add services to the container.
@@ -26,10 +30,15 @@ public class Program
 
         var app = builder.Build();
 
+        // Apply migrations on startup if --migrate is passed
+        app.ApplyMigrations(args);
+
         // Configure Middleware Pipeline
         app.UseMiddlewarePipeline();
 
         app.MapControllers();
+
+        app.MapHub<ChatService.Presentation.Hubs.ChatHub>("/hubs/chat");
 
         app.MapGet("/test", (HttpContext httpContext) =>
         {
