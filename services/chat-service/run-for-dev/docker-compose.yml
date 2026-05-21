@@ -1,0 +1,40 @@
+version: "3.9"
+
+services:
+  chat-service:
+    build:
+      context: ../ChatService
+      dockerfile: Dockerfile
+    image: duongthuan0405/chat-service-dev:latest
+    env_file:
+      - .env
+    ports:
+      - "${ASPNETCORE_PORT}:8080"
+    volumes:
+      - log_data:/app/Logs
+
+
+  postgres:
+    image: postgres:17-alpine
+
+    container_name: ${DB_CONTAINER_NAME}
+
+    restart: unless-stopped
+
+    env_file:
+      - .env
+
+    environment:
+      POSTGRES_USER: ${DB_USERNAME}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_DATABASE}
+
+    ports:
+      - 5432
+
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_data:
+  log_data:

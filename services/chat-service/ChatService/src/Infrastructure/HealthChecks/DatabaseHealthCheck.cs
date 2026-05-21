@@ -1,6 +1,7 @@
 using System;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using ChatService.Infrastructure.Persistence;
 
@@ -19,16 +20,13 @@ public class DatabaseHealthCheck : IHealthCheck
     {
         try
         {
-            if (await _context.Database.CanConnectAsync(cancellationToken))
-            {
-                return HealthCheckResult.Healthy("Database connection is healthy.");
-            }
-
-            return HealthCheckResult.Unhealthy("Cannot connect to the Database.");
+            await _context.Database.OpenConnectionAsync(cancellationToken);
+            await _context.Database.CloseConnectionAsync();
+            return HealthCheckResult.Healthy("Database connection is healthy.");
         }
         catch (Exception ex)
         {
-            return HealthCheckResult.Unhealthy("Database health check failed.", ex);
+            return HealthCheckResult.Unhealthy("Cannot connect to the Database.", ex);
         }
     }
 }
