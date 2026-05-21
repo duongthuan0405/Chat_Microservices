@@ -1,3 +1,5 @@
+# DB
+
 services:
   postgres:
     image: postgres:17-alpine
@@ -22,3 +24,4 @@ services:
 
 volumes:
   postgres_data:
+
