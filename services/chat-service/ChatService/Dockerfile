@@ -12,7 +12,4 @@ EXPOSE 8080
 
 COPY --from=builder /app/publish .
 
-HEALTHCHECK --interval=60s --timeout=10s --retries=5 --start-period=20s \
-    CMD wget --spider http://localhost:8080/health || exit 1
-
 ENTRYPOINT ["dotnet", "ChatService.dll"]
