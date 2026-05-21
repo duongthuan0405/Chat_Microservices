@@ -30,12 +30,12 @@ public static class DependencyInjection
 
     private static IServiceCollection AddPersistence(this IServiceCollection services, IConfiguration configuration)
     {
-        // Read environment variables for PostgreSQL
-        var dbHost = Environment.GetEnvironmentVariable("DB_HOST") ?? "localhost";
-        var dbPort = Environment.GetEnvironmentVariable("DB_PORT") ?? "5432";
-        var dbUser = Environment.GetEnvironmentVariable("DB_USERNAME") ?? "thuanduong";
-        var dbPass = Environment.GetEnvironmentVariable("DB_PASSWORD") ?? "duongthuan@123";
-        var dbName = Environment.GetEnvironmentVariable("DB_DATABASE") ?? "notification_db";
+        // Read environment variables for PostgreSQL and throw exception if missing
+        var dbHost = configuration["DB_HOST"] ?? throw new InvalidOperationException("Required configuration key 'DB_HOST' is missing.");
+        var dbPort = configuration["DB_PORT"] ?? throw new InvalidOperationException("Required configuration key 'DB_PORT' is missing.");
+        var dbUser = configuration["DB_USERNAME"] ?? throw new InvalidOperationException("Required configuration key 'DB_USERNAME' is missing.");
+        var dbPass = configuration["DB_PASSWORD"] ?? throw new InvalidOperationException("Required configuration key 'DB_PASSWORD' is missing.");
+        var dbName = configuration["DB_DATABASE"] ?? throw new InvalidOperationException("Required configuration key 'DB_DATABASE' is missing.");
 
         var connectionString = $"Host={dbHost};Port={dbPort};Database={dbName};Username={dbUser};Password={dbPass};Include Error Detail=true";
         
@@ -69,10 +69,10 @@ public static class DependencyInjection
     }
     private static IServiceCollection AddEventBus(this IServiceCollection services, IConfiguration configuration)
     {
-        var rabbitHost = Environment.GetEnvironmentVariable("RABBITMQ_HOST") ?? "localhost";
-        var rabbitPort = Environment.GetEnvironmentVariable("RABBITMQ_PORT") ?? "5672";
-        var rabbitUser = Environment.GetEnvironmentVariable("RABBITMQ_USERNAME") ?? "guest";
-        var rabbitPass = Environment.GetEnvironmentVariable("RABBITMQ_PASSWORD") ?? "guest";
+        var rabbitHost = configuration["RABBITMQ_HOST"] ?? throw new InvalidOperationException("Required configuration key 'RABBITMQ_HOST' is missing.");
+        var rabbitPort = configuration["RABBITMQ_PORT"] ?? throw new InvalidOperationException("Required configuration key 'RABBITMQ_PORT' is missing.");
+        var rabbitUser = configuration["RABBITMQ_USERNAME"] ?? throw new InvalidOperationException("Required configuration key 'RABBITMQ_USERNAME' is missing.");
+        var rabbitPass = configuration["RABBITMQ_PASSWORD"] ?? throw new InvalidOperationException("Required configuration key 'RABBITMQ_PASSWORD' is missing.");
 
         services.AddMassTransit(x =>
         {
