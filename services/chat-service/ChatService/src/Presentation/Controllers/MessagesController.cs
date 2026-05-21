@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using MediatR;
@@ -8,6 +9,7 @@ using ChatService.Application.Features.Messages.Commands.EditMessage;
 using ChatService.Application.Features.Messages.Commands.SoftDeleteMessage;
 using ChatService.Application.Features.Messages.Commands.MarkMessageAsRead;
 using ChatService.Application.Features.Messages.Queries.GetMessages;
+using ChatService.Application.Features.Messages.Queries.GetLatestMessages;
 using ChatService.Application.Common.Models;
 using ChatService.Application.Exceptions;
 using ChatService.Presentation.Common;
@@ -132,8 +134,7 @@ public class MessagesController : ControllerBase
             Id = result.Id,
             ConversationId = result.ConversationId,
             UserId = result.UserId,
-            LastReadMessageId = result.LastReadMessageId,
-            ReadAt = result.ReadAt
+            LastReadAt = result.LastReadAt
         };
 
         return Ok(new ApiSuccessResponse<MessageReadStatusResponseDto>(response, "Message marked as read successfully."));
@@ -165,6 +166,8 @@ public class MessagesController : ControllerBase
             Content = item.Content,
             Type = item.Type.ToString(),
             IsDeleted = item.IsDeleted,
+            IsRead = item.IsRead,
+            ReadBy = item.ReadBy,
             CreatedAt = item.CreatedAt,
             UpdatedAt = item.UpdatedAt
         }).ToList();
@@ -177,6 +180,73 @@ public class MessagesController : ControllerBase
         );
 
         return Ok(new ApiSuccessResponse<PagedResult<MessageResponseDto>>(response, "Conversation messages retrieved successfully."));
+    }
+
+    [HttpPost("conversations/latest")]
+    public async Task<ActionResult<ApiSuccessResponse<Dictionary<Guid, MessageResponseDto>>>> GetLatestMessagesAsync(
+        [FromBody] GetLatestMessagesRequestDto requestDto)
+    {
+        var currentUserId = this.GetCurrentUserId();
+
+        var query = new GetLatestMessagesQuery
+        {
+            ConversationIds = requestDto.ConversationIds,
+            UserId = currentUserId
+        };
+
+        var result = await _sender.Send(query);
+
+        var response = result.ToDictionary(
+            kvp => kvp.Key,
+            kvp => new MessageResponseDto
+            {
+                Id = kvp.Value.Id,
+                ConversationId = kvp.Value.ConversationId,
+                SenderId = kvp.Value.SenderId,
+                Content = kvp.Value.Content,
+                Type = kvp.Value.Type.ToString(),
+                IsDeleted = kvp.Value.IsDeleted,
+                IsRead = kvp.Value.IsRead,
+                CreatedAt = kvp.Value.CreatedAt,
+                UpdatedAt = kvp.Value.UpdatedAt
+            });
+
+        return Ok(new ApiSuccessResponse<Dictionary<Guid, MessageResponseDto>>(response, "Latest messages retrieved successfully."));
+    }
+
+    [HttpGet("conversation/{conversationId}/latest")]
+    public async Task<ActionResult<ApiSuccessResponse<MessageResponseDto?>>> GetLatestMessageByConversationAsync(
+        [FromRoute] Guid conversationId)
+    {
+        var currentUserId = this.GetCurrentUserId();
+
+        var query = new GetLatestMessagesQuery
+        {
+            ConversationIds = new List<Guid> { conversationId },
+            UserId = currentUserId
+        };
+
+        var result = await _sender.Send(query);
+
+        if (result.TryGetValue(conversationId, out var messageDto))
+        {
+            var response = new MessageResponseDto
+            {
+                Id = messageDto.Id,
+                ConversationId = messageDto.ConversationId,
+                SenderId = messageDto.SenderId,
+                Content = messageDto.Content,
+                Type = messageDto.Type.ToString(),
+                IsDeleted = messageDto.IsDeleted,
+                IsRead = messageDto.IsRead,
+                CreatedAt = messageDto.CreatedAt,
+                UpdatedAt = messageDto.UpdatedAt
+            };
+
+            return Ok(new ApiSuccessResponse<MessageResponseDto?>(response, "Latest message retrieved successfully."));
+        }
+
+        return Ok(new ApiSuccessResponse<MessageResponseDto?>(null, "No messages found in this conversation."));
     }
 }
 

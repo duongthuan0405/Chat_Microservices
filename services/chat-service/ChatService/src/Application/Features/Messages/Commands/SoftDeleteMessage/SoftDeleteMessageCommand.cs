@@ -64,24 +64,7 @@ public class SoftDeleteMessageCommandHandler : IRequestHandler<SoftDeleteMessage
             message.SoftDelete();
             await _messageRepository.UpdateAsync(message, cancellationToken);
 
-            // Update watermarks if this message was the last read message for any users
-            var readStatuses = await _messageReadStatusRepository.GetByLastReadMessageIdAsync(message.Id, cancellationToken);
-            if (readStatuses != null && readStatuses.Count > 0)
-            {
-                var previousMessage = await _messageRepository.GetLatestBeforeAsync(
-                    message.ConversationId, 
-                    message.CreatedAt, 
-                    cancellationToken);
 
-                if (previousMessage != null)
-                {
-                    foreach (var status in readStatuses)
-                    {
-                        status.UpdateReadStatus(previousMessage.Id);
-                        await _messageReadStatusRepository.UpdateAsync(status, cancellationToken);
-                    }
-                }
-            }
 
             await _unitOfWork.FinishAsync();
 

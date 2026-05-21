@@ -12,18 +12,11 @@ public partial class MessageReadStatus
     public Guid Id { get; private set; }
     public Guid ConversationId { get; private set; }
     public Guid UserId { get; private set; }
-    public Guid LastReadMessageId { get; private set; }
-    public DateTimeOffset ReadAt { get; private set; }
+    public DateTimeOffset LastReadAt { get; private set; }
 
-    public void UpdateReadStatus(Guid lastReadMessageId)
+    public void UpdateReadStatus(DateTimeOffset lastReadAt)
     {
-        if (lastReadMessageId == Guid.Empty)
-        {
-            throw new DomainException("LastReadMessageId cannot be empty.");
-        }
-
-        LastReadMessageId = lastReadMessageId;
-        ReadAt = DateTimeOffset.UtcNow;
+        LastReadAt = lastReadAt;
     }
 
     public class MessageReadStatusBuilder
@@ -31,8 +24,7 @@ public partial class MessageReadStatus
         private Guid _id = Guid.NewGuid();
         private Guid _conversationId;
         private Guid _userId;
-        private Guid _lastReadMessageId;
-        private DateTimeOffset _readAt = DateTimeOffset.UtcNow;
+        private DateTimeOffset _lastReadAt = DateTimeOffset.UtcNow;
 
         public MessageReadStatusBuilder WithId(Guid id)
         {
@@ -52,15 +44,9 @@ public partial class MessageReadStatus
             return this;
         }
 
-        public MessageReadStatusBuilder WithLastReadMessageId(Guid lastReadMessageId)
+        public MessageReadStatusBuilder WithLastReadAt(DateTimeOffset lastReadAt)
         {
-            _lastReadMessageId = lastReadMessageId;
-            return this;
-        }
-
-        public MessageReadStatusBuilder WithReadAt(DateTimeOffset readAt)
-        {
-            _readAt = readAt;
+            _lastReadAt = lastReadAt;
             return this;
         }
 
@@ -76,18 +62,12 @@ public partial class MessageReadStatus
                 throw new DomainException("UserId cannot be empty.");
             }
 
-            if (_lastReadMessageId == Guid.Empty)
-            {
-                throw new DomainException("LastReadMessageId cannot be empty.");
-            }
-
             return new MessageReadStatus
             {
                 Id = _id,
                 ConversationId = _conversationId,
                 UserId = _userId,
-                LastReadMessageId = _lastReadMessageId,
-                ReadAt = _readAt
+                LastReadAt = _lastReadAt
             };
         }
     }

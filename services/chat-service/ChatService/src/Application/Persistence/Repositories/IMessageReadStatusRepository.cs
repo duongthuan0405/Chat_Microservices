@@ -11,9 +11,13 @@ public interface IMessageReadStatusRepository
         Guid conversationId, 
         Guid userId, 
         CancellationToken cancellationToken = default);
+    Task<List<MessageReadStatus>> GetByConversationAsync(
+        Guid conversationId, 
+        CancellationToken cancellationToken = default);
 
-    Task<List<MessageReadStatus>> GetByLastReadMessageIdAsync(
-        Guid lastReadMessageId, 
+    Task<List<MessageReadStatus>> GetByConversationsAndUserAsync(
+        List<Guid> conversationIds, 
+        Guid userId, 
         CancellationToken cancellationToken = default);
 
     Task AddAsync(MessageReadStatus status, CancellationToken cancellationToken = default);

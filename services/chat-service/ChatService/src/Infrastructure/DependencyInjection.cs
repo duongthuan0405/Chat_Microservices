@@ -8,6 +8,7 @@ using ChatService.Application.ExternalServices;
 using ChatService.Infrastructure.Persistence;
 using ChatService.Infrastructure.Persistence.Repositories;
 using ChatService.Infrastructure.ExternalServices;
+using ChatService.Infrastructure.HealthChecks;
 
 namespace ChatService.Infrastructure;
 
@@ -37,6 +38,10 @@ public static class DependencyInjection
         // Register EF Core DbContext for PostgreSQL
         services.AddDbContext<ChatDbContext>(options =>
             options.UseNpgsql(connectionString));
+
+        // Register database health check
+        services.AddHealthChecks()
+            .AddCheck<DatabaseHealthCheck>("PostgreSQL", tags: new[] { "ready" });
 
         return services;
     }

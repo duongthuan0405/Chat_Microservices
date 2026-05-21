@@ -36,6 +36,9 @@ public class Program
         // Configure Middleware Pipeline
         app.UseMiddlewarePipeline();
 
+        // Register custom health checks endpoint
+        app.MapCustomHealthChecks();
+
         app.MapControllers();
 
         app.MapHub<ChatService.Presentation.Hubs.ChatHub>("/hubs/chat");

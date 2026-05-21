@@ -4,9 +4,16 @@ using System.Threading.Tasks;
 using ChatService.Application.Features.Messages.Commands.SendMessage;
 using ChatService.Application.Features.Messages.Commands.EditMessage;
 using ChatService.Application.Features.Messages.Commands.SoftDeleteMessage;
-using ChatService.Application.Features.Messages.Commands.MarkMessageAsRead;
 
 namespace ChatService.Application.ExternalServices;
+
+public class MessageReadEvent
+{
+    public Guid Id { get; set; }
+    public Guid ConversationId { get; set; }
+    public Guid UserId { get; set; }
+    public DateTimeOffset LastReadAt { get; set; }
+}
 
 public interface IMessageHubPublisher
 {
@@ -14,5 +21,5 @@ public interface IMessageHubPublisher
     Task PublishNewMessageNotificationAsync(Guid userId, SendMessageCommandResponse message, CancellationToken cancellationToken = default);
     Task PublishMessageEditedAsync(Guid conversationId, EditMessageCommandResponse message, CancellationToken cancellationToken = default);
     Task PublishMessageDeletedAsync(Guid conversationId, SoftDeleteMessageCommandResponse message, CancellationToken cancellationToken = default);
-    Task PublishMessageReadAsync(Guid conversationId, MarkMessageAsReadCommandResponse status, CancellationToken cancellationToken = default);
+    Task PublishMessageReadAsync(Guid conversationId, MessageReadEvent status, CancellationToken cancellationToken = default);
 }

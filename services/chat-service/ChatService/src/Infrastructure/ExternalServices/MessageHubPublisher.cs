@@ -7,7 +7,6 @@ using ChatService.Presentation.Hubs;
 using ChatService.Application.Features.Messages.Commands.SendMessage;
 using ChatService.Application.Features.Messages.Commands.EditMessage;
 using ChatService.Application.Features.Messages.Commands.SoftDeleteMessage;
-using ChatService.Application.Features.Messages.Commands.MarkMessageAsRead;
 
 namespace ChatService.Infrastructure.ExternalServices;
 
@@ -47,7 +46,7 @@ public class MessageHubPublisher : IMessageHubPublisher
         await _hubContext.Clients.Group(conversationId.ToString()).SendAsync(MessageDeletedEvent, message, cancellationToken);
     }
 
-    public async Task PublishMessageReadAsync(Guid conversationId, MarkMessageAsReadCommandResponse status, CancellationToken cancellationToken = default)
+    public async Task PublishMessageReadAsync(Guid conversationId, MessageReadEvent status, CancellationToken cancellationToken = default)
     {
         await _hubContext.Clients.Group(conversationId.ToString()).SendAsync(MessageReadEvent, status, cancellationToken);
     }

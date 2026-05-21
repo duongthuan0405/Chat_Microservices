@@ -22,6 +22,10 @@ public interface IMessageRepository
         DateTimeOffset beforeTime, 
         CancellationToken cancellationToken = default);
 
+    Task<Dictionary<Guid, Message>> GetLatestMessagesAsync(
+        List<Guid> conversationIds, 
+        CancellationToken cancellationToken = default);
+
     Task AddAsync(Message message, CancellationToken cancellationToken = default);
 
     Task UpdateAsync(Message message, CancellationToken cancellationToken = default);

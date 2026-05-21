@@ -14,7 +14,5 @@ public class MessageReadStatusConfiguration : IEntityTypeConfiguration<MessageRe
 
         builder.HasIndex(x => new { x.ConversationId, x.UserId })
             .IsUnique();
-
-        builder.HasIndex(x => x.LastReadMessageId);
     }
 }

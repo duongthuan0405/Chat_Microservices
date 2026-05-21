@@ -3,6 +3,7 @@ using System;
 using ChatService.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace ChatService.Migrations
 {
     [DbContext(typeof(ChatDbContext))]
-    partial class ChatDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260521042616_ADD_Nav_Props_Collections")]
+    partial class ADD_Nav_Props_Collections
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -70,7 +73,10 @@ namespace ChatService.Migrations
                     b.Property<Guid>("ConversationId")
                         .HasColumnType("uuid");
 
-                    b.Property<DateTimeOffset>("LastReadAt")
+                    b.Property<Guid>("LastReadMessageId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("ReadAt")
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<Guid>("UserId")
@@ -78,10 +84,28 @@ namespace ChatService.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("LastReadMessageId");
+
                     b.HasIndex("ConversationId", "UserId")
                         .IsUnique();
 
                     b.ToTable("MessageReadStatus", (string)null);
+                });
+
+            modelBuilder.Entity("ChatService.Infrastructure.Persistence.Models.MessageReadStatusDb", b =>
+                {
+                    b.HasOne("ChatService.Infrastructure.Persistence.Models.MessageDb", "LastReadMessage")
+                        .WithMany("MessageReadStatuses")
+                        .HasForeignKey("LastReadMessageId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("LastReadMessage");
+                });
+
+            modelBuilder.Entity("ChatService.Infrastructure.Persistence.Models.MessageDb", b =>
+                {
+                    b.Navigation("MessageReadStatuses");
                 });
 #pragma warning restore 612, 618
         }

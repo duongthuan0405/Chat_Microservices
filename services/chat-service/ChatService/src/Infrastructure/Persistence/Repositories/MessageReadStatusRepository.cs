@@ -30,12 +30,29 @@ public class MessageReadStatusRepository : IMessageReadStatusRepository
         return dbStatus == null ? null : MapToDomain(dbStatus);
     }
 
-    public async Task<List<MessageReadStatus>> GetByLastReadMessageIdAsync(
-        Guid lastReadMessageId, 
+    public async Task<List<MessageReadStatus>> GetByConversationAsync(
+        Guid conversationId, 
         CancellationToken cancellationToken = default)
     {
         var dbStatuses = await _context.MessageReadStatuses
-            .Where(x => x.LastReadMessageId == lastReadMessageId)
+            .Where(x => x.ConversationId == conversationId)
+            .ToListAsync(cancellationToken);
+
+        return dbStatuses.Select(MapToDomain).ToList();
+    }
+
+    public async Task<List<MessageReadStatus>> GetByConversationsAndUserAsync(
+        List<Guid> conversationIds, 
+        Guid userId, 
+        CancellationToken cancellationToken = default)
+    {
+        if (conversationIds == null || conversationIds.Count == 0)
+        {
+            return new List<MessageReadStatus>();
+        }
+
+        var dbStatuses = await _context.MessageReadStatuses
+            .Where(x => conversationIds.Contains(x.ConversationId) && x.UserId == userId)
             .ToListAsync(cancellationToken);
 
         return dbStatuses.Select(MapToDomain).ToList();
@@ -54,8 +71,7 @@ public class MessageReadStatusRepository : IMessageReadStatusRepository
 
         if (dbStatus != null)
         {
-            dbStatus.LastReadMessageId = status.LastReadMessageId;
-            dbStatus.ReadAt = status.ReadAt;
+            dbStatus.LastReadAt = status.LastReadAt;
 
             _context.MessageReadStatuses.Update(dbStatus);
         }
@@ -67,8 +83,7 @@ public class MessageReadStatusRepository : IMessageReadStatusRepository
             .WithId(dbStatus.Id)
             .WithConversationId(dbStatus.ConversationId)
             .WithUserId(dbStatus.UserId)
-            .WithLastReadMessageId(dbStatus.LastReadMessageId)
-            .WithReadAt(dbStatus.ReadAt)
+            .WithLastReadAt(dbStatus.LastReadAt)
             .Build();
     }
 
@@ -79,8 +94,7 @@ public class MessageReadStatusRepository : IMessageReadStatusRepository
             Id = status.Id,
             ConversationId = status.ConversationId,
             UserId = status.UserId,
-            LastReadMessageId = status.LastReadMessageId,
-            ReadAt = status.ReadAt
+            LastReadAt = status.LastReadAt
         };
     }
 }

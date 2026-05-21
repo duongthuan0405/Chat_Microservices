@@ -106,6 +106,7 @@ public partial class Message
             return this;
         }
 
+
         public Message Build()
         {
             if (_conversationId == Guid.Empty)

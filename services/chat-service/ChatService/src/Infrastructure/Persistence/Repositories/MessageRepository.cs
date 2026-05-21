@@ -63,6 +63,27 @@ public class MessageRepository : IMessageRepository
         return dbMessage == null ? null : MapToDomain(dbMessage);
     }
 
+    public async Task<Dictionary<Guid, Message>> GetLatestMessagesAsync(
+        List<Guid> conversationIds, 
+        CancellationToken cancellationToken = default)
+    {
+        if (conversationIds == null || conversationIds.Count == 0)
+        {
+            return new Dictionary<Guid, Message>();
+        }
+
+        var latestDbMessages = await _context.Messages
+            .Where(x => conversationIds.Contains(x.ConversationId) && !x.IsDeleted)
+            .GroupBy(x => x.ConversationId)
+            .Select(g => g.OrderByDescending(x => x.CreatedAt).FirstOrDefault())
+            .Where(x => x != null)
+            .ToListAsync(cancellationToken);
+
+        return latestDbMessages
+            .Select(x => MapToDomain(x!))
+            .ToDictionary(x => x.ConversationId, x => x);
+    }
+
     public async Task AddAsync(Message message, CancellationToken cancellationToken = default)
     {
         var dbMessage = MapToDb(message);

@@ -21,8 +21,7 @@ public class MarkMessageAsReadCommandResponse
     public Guid Id { get; set; }
     public Guid ConversationId { get; set; }
     public Guid UserId { get; set; }
-    public Guid LastReadMessageId { get; set; }
-    public DateTimeOffset ReadAt { get; set; }
+    public DateTimeOffset LastReadAt { get; set; }
 }
 
 public class MarkMessageAsReadCommandHandler : IRequestHandler<MarkMessageAsReadCommand, MarkMessageAsReadCommandResponse>
@@ -74,14 +73,14 @@ public class MarkMessageAsReadCommandHandler : IRequestHandler<MarkMessageAsRead
                 status = new MessageReadStatus.MessageReadStatusBuilder()
                     .WithConversationId(message.ConversationId)
                     .WithUserId(request.UserId)
-                    .WithLastReadMessageId(request.MessageId)
+                    .WithLastReadAt(DateTimeOffset.UtcNow)
                     .Build();
 
                 await _messageReadStatusRepository.AddAsync(status, cancellationToken);
             }
             else
             {
-                status.UpdateReadStatus(request.MessageId);
+                status.UpdateReadStatus(DateTimeOffset.UtcNow);
                 await _messageReadStatusRepository.UpdateAsync(status, cancellationToken);
             }
 
@@ -92,12 +91,18 @@ public class MarkMessageAsReadCommandHandler : IRequestHandler<MarkMessageAsRead
                 Id = status.Id,
                 ConversationId = status.ConversationId,
                 UserId = status.UserId,
-                LastReadMessageId = status.LastReadMessageId,
-                ReadAt = status.ReadAt
+                LastReadAt = status.LastReadAt
             };
 
             // Broadcast real-time message read event using strongly-typed publisher
-            await _messageHubPublisher.PublishMessageReadAsync(status.ConversationId, response, cancellationToken);
+            var readEvent = new MessageReadEvent
+            {
+                Id = status.Id,
+                ConversationId = status.ConversationId,
+                UserId = status.UserId,
+                LastReadAt = status.LastReadAt
+            };
+            await _messageHubPublisher.PublishMessageReadAsync(status.ConversationId, readEvent, cancellationToken);
 
             return response;
         }
