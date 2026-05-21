@@ -17,15 +17,14 @@ jobs:
         working-directory: ./services/notification-service/NotificationService/
 
     steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
 
       - name: Log information
         run: |
           echo "Pull Request #${{ github.event.number }} opened by ${{ github.event.pull_request.user.login }}"
           echo "Source branch: ${{ github.head_ref }}"
           echo "Target branch: ${{ github.base_ref }}"
-      
-      - name: Checkout Repository
-        uses: actions/checkout@v4
 
       - name: Setup .NET SDK
         uses: actions/setup-dotnet@v4
