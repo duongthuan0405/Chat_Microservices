@@ -49,7 +49,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ${{ secrets.DOCKER_USERNAME_THUAN }}/notification-service
+          images: ${{ secrets.DOCKER_USERNAME }}/notification-service
           tags: |
             type=sha,format=long
             latest
