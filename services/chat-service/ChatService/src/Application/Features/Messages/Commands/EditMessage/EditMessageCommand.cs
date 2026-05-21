@@ -8,8 +8,6 @@ using ChatService.Application.ExternalServices;
 using ChatService.Application.Persistence;
 using ChatService.Application.Persistence.Repositories;
 
-using ChatService.Application.ExternalServices;
-
 namespace ChatService.Application.Features.Messages.Commands.EditMessage;
 
 public class EditMessageCommand : IRequest<EditMessageCommandResponse>
