@@ -1,0 +1,13 @@
+services:
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    container_name: ${RABBITMQ_CONTAINER_NAME}
+    restart: unless-stopped
+    env_file:
+      - .env.rabbitmq
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_DEFAULT_USER}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_DEFAULT_PASS}
+    ports:
+      - "${RABBITMQ_HOST_PORT}:${RABBITMQ_CONTAINER_PORT}"
+      - "${RABBITMQ_MANAGEMENT_HOST_PORT}:${RABBITMQ_MANAGEMENT_CONTAINER_PORT}"
