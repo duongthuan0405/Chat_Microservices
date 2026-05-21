@@ -1,18 +1,5 @@
 # RabbitMQ
 services:
-  rabbitmq:
-    image: rabbitmq:3-management-alpine
-    container_name: ${RABBITMQ_CONTAINER_NAME}
-    restart: unless-stopped
-    env_file:
-      - .env.rabbitmq
-    environment:
-      RABBITMQ_DEFAULT_USER: ${RABBITMQ_DEFAULT_USER}
-      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_DEFAULT_PASS}
-    ports:
-      - "${RABBITMQ_HOST_PORT}:${RABBITMQ_CONTAINER_PORT}"
-      - "${RABBITMQ_MANAGEMENT_HOST_PORT}:${RABBITMQ_MANAGEMENT_CONTAINER_PORT}"
-
   notification-db:
     image: postgres:17-alpine
     container_name: ${DB_CONTAINER_NAME}
@@ -37,7 +24,9 @@ services:
       - "${ASPNETCORE_HOST_PORT}:${ASPNETCORE_CONTAINER_PORT}"
     depends_on:
       - notification-db
-      - rabbitmq
+    volumes:
+      - notification_service:/app/
 
 volumes:
   notification_data:
+  notification_service:

@@ -1,1 +1,1 @@
-docker compose --env-file .env.service --env-file .env.postgres --env-file .env.rabbitmq down -v
+docker compose --env-file .env.service --env-file .env.postgres down -v
