@@ -182,3 +182,18 @@ VALUES (@p0, @p1, @p2, @p3, @p4, @p5, @p6, @p7);
 2026-05-21 13:51:27.824 +07:00 [INF] Executed endpoint 'ChatService.Presentation.Controllers.MessagesController.SendMessageAsync (ChatService)'
 2026-05-21 13:51:27.829 +07:00 [INF] Request finished HTTP/1.1 POST http://localhost:5031/api/messages - 201 null application/json; charset=utf-8 849.6658ms
 2026-05-21 13:51:56.905 +07:00 [INF] Application is shutting down...
+2026-05-21 16:53:21.389 +07:00 [INF] Now listening on: http://localhost:5031
+2026-05-21 16:53:21.408 +07:00 [INF] Application started. Press Ctrl+C to shut down.
+2026-05-21 16:53:21.409 +07:00 [INF] Hosting environment: Development
+2026-05-21 16:53:21.409 +07:00 [INF] Content root path: D:\KTPM2023\2025_2026_HK2\SE359_DevOps\Chat_Microservices\services\chat-service\ChatService
+2026-05-21 16:53:23.041 +07:00 [INF] Request starting HTTP/1.1 GET http://localhost:5031/ - null null
+2026-05-21 16:53:23.062 +07:00 [INF] Request finished HTTP/1.1 GET http://localhost:5031/ - 404 0 null 21.8977ms
+2026-05-21 16:53:23.072 +07:00 [INF] Request reached the end of the middleware pipeline without being handled by application code. Request path: GET http://localhost:5031/, Response status code: 404
+2026-05-21 16:53:29.172 +07:00 [INF] Request starting HTTP/1.1 GET http://localhost:5031/health - null null
+2026-05-21 16:53:29.177 +07:00 [INF] Executing endpoint 'Health checks'
+2026-05-21 16:53:29.635 +07:00 [INF] Executed endpoint 'Health checks'
+2026-05-21 16:53:29.637 +07:00 [INF] Request finished HTTP/1.1 GET http://localhost:5031/health - 200 null application/json 464.627ms
+2026-05-21 16:53:29.651 +07:00 [INF] Request starting HTTP/1.1 GET http://localhost:5031/favicon.ico - null null
+2026-05-21 16:53:29.654 +07:00 [INF] Request finished HTTP/1.1 GET http://localhost:5031/favicon.ico - 404 0 null 2.8587ms
+2026-05-21 16:53:29.656 +07:00 [INF] Request reached the end of the middleware pipeline without being handled by application code. Request path: GET http://localhost:5031/favicon.ico, Response status code: 404
+2026-05-21 16:53:46.263 +07:00 [INF] Application is shutting down...
