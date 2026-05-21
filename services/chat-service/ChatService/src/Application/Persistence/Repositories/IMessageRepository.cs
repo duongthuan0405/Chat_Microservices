@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using ChatService.Domain.Entities;
+using ChatService.Application.Common.Models;
 
 namespace ChatService.Application.Persistence.Repositories;
 
@@ -10,7 +11,7 @@ public interface IMessageRepository
 {
     Task<Message?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default);
     
-    Task<List<Message>> GetPagedByConversationIdAsync(
+    Task<PagedResult<Message>> GetPagedByConversationIdAsync(
         Guid conversationId, 
         int pageNumber, 
         int pageSize, 
@@ -25,3 +26,4 @@ public interface IMessageRepository
 
     Task UpdateAsync(Message message, CancellationToken cancellationToken = default);
 }
+

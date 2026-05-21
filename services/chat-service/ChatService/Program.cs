@@ -1,4 +1,5 @@
 using ChatService.Application;
+using ChatService.Infrastructure;
 using ChatService.Presentation;
 using ChatService.Presentation.Extensions;
 using Microsoft.AspNetCore.Builder;
@@ -19,6 +20,7 @@ public class Program
         builder.Services.AddOpenApi();
 
         builder.Services.AddApplicationServices();
+        builder.Services.AddInfrastructureServices(builder.Configuration);
         builder.Services.AddPresentationServices();
         builder.Services.AddMiddlewares();
 
@@ -38,3 +40,4 @@ public class Program
         app.Run();
     }
 }
+

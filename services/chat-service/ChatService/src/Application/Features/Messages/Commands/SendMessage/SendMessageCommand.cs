@@ -28,6 +28,7 @@ public class SendMessageCommandResponse
     public MessageType Type { get; set; }
     public bool IsDeleted { get; set; }
     public DateTimeOffset CreatedAt { get; set; }
+    public DateTimeOffset? UpdatedAt { get; set; }
 }
 
 public class SendMessageCommandHandler : IRequestHandler<SendMessageCommand, SendMessageCommandResponse>
@@ -75,7 +76,8 @@ public class SendMessageCommandHandler : IRequestHandler<SendMessageCommand, Sen
                 Content = message.Content,
                 Type = message.Type,
                 IsDeleted = message.IsDeleted,
-                CreatedAt = message.CreatedAt
+                CreatedAt = message.CreatedAt,
+                UpdatedAt = message.UpdatedAt
             };
         }
         catch

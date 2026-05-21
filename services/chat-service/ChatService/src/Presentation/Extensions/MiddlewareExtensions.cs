@@ -17,6 +17,8 @@ public static class MiddlewareExtensions
     {
         app.UseMiddleware<GlobalExceptionHandler>();
 
+        app.UseSwaggerServices(app.Environment);
+
         // app.UseHttpsRedirection();
 
         app.UseAuthorization();
