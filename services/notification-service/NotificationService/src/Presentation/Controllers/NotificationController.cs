@@ -8,6 +8,7 @@ using NotificationService.Application.Features.Notifications.Queries.GetNotifica
 using NotificationService.Application.Common.Models;
 using NotificationService.Presentation.Common;
 using NotificationService.Presentation.DTOs;
+using NotificationService.Presentation.Extensions;
 
 namespace NotificationService.Presentation.Controllers;
 
@@ -22,12 +23,12 @@ public class NotificationController : ControllerBase
         _sender = sender;
     }
 
-    [HttpGet("user/{userId}")]
-    public async Task<ActionResult<ApiSuccessResponse<PagedResult<NotificationHistoryResponseDto>>>> GetHistoryByUserIdAsync(
-        [FromRoute] Guid userId,
+    [HttpGet]
+    public async Task<ActionResult<ApiSuccessResponse<PagedResult<NotificationHistoryResponseDto>>>> GetHistoryAsync(
         [FromQuery] int pageNumber = 1,
         [FromQuery] int pageSize = 10)
     {
+        var userId = HttpContext.GetCurrentUserId();
         var query = new GetNotificationHistoryByUserIdQuery 
         { 
             UserId = userId,

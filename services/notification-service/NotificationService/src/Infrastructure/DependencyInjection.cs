@@ -85,6 +85,7 @@ public static class DependencyInjection
                 {
                     h.Username(rabbitUser);
                     h.Password(rabbitPass);
+                    h.Heartbeat(TimeSpan.FromSeconds(30)); // Cấu hình nhịp tim (heartbeat) kết nối hàng đợi 30 giây
                 });
 
                 // Cấu hình cơ chế tự động thử lại 6 lần, mỗi lần cách nhau 5 giây khi xử lý gặp lỗi

@@ -6,6 +6,7 @@ using NotificationService.Application.Features.Preferences.Commands.ToggleUserPr
 using NotificationService.Application.Features.Preferences.Queries.GetUserPreferences;
 using NotificationService.Presentation.Common;
 using NotificationService.Presentation.DTOs;
+using NotificationService.Presentation.Extensions;
 
 namespace NotificationService.Presentation.Controllers;
 
@@ -20,10 +21,10 @@ public class NotificationPreferenceController : ControllerBase
         _sender = sender;
     }
 
-    [HttpGet("{userId:guid}")]
-    public async Task<ActionResult<ApiSuccessResponse<NotificationPreferenceResponseDto>>> GetPreferencesAsync(
-        [FromRoute] Guid userId)
+    [HttpGet]
+    public async Task<ActionResult<ApiSuccessResponse<NotificationPreferenceResponseDto>>> GetPreferencesAsync()
     {
+        var userId = HttpContext.GetCurrentUserId();
         var query = new GetUserPreferencesQuery { UserId = userId };
         var result = await _sender.Send(query);
 
@@ -37,10 +38,10 @@ public class NotificationPreferenceController : ControllerBase
         return Ok(new ApiSuccessResponse<NotificationPreferenceResponseDto>(response, "User notification preferences retrieved successfully."));
     }
 
-    [HttpPost("{userId:guid}/toggle")]
-    public async Task<ActionResult<ApiSuccessResponse<NotificationPreferenceResponseDto>>> TogglePreferencesAsync(
-        [FromRoute] Guid userId)
+    [HttpPost("toggle")]
+    public async Task<ActionResult<ApiSuccessResponse<NotificationPreferenceResponseDto>>> TogglePreferencesAsync()
     {
+        var userId = HttpContext.GetCurrentUserId();
         var command = new ToggleUserNotificationPreferenceCommand { UserId = userId };
         var result = await _sender.Send(command);
 
