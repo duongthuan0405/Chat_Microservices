@@ -1,0 +1,28 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: notification-service-migration-job
+  namespace: default
+spec:
+  template:
+    spec:
+      containers:
+        - name: db-migration
+          image: DOCKER_IMAGE_PLACEHOLDER
+          imagePullPolicy: Always
+          args: ["--migrate"]
+          env:
+            - name: ASPNETCORE_ENVIRONMENT
+              value: Production
+            - name: DB_HOST
+              value: "${DB_HOST}"
+            - name: DB_PORT
+              value: "${DB_PORT}"
+            - name: DB_USERNAME
+              value: "${DB_USERNAME}"
+            - name: DB_PASSWORD
+              value: "${DB_PASSWORD}"
+            - name: DB_DATABASE
+              value: "${DB_DATABASE}"
+      restartPolicy: OnFailure
+  backoffLimit: 3

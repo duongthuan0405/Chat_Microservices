@@ -12,6 +12,7 @@ jobs:
   build-publish:
     name: Build & Publish to Docker Hub
     runs-on: ubuntu-latest
+    environment: NotificationServiceProduction
     defaults: 
       run: 
         working-directory: ./services/notification-service/NotificationService/
@@ -65,9 +66,9 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
       
-      - name: Deployment (FAKE)
-        run: echo "Deployment placeholder"
-
+      - name: Fake Deployment
+        run: echo "Fake Deployment"
+      
       # - name: Azure Login
       #   uses: azure/login@v2
       #   with:
@@ -79,12 +80,44 @@ jobs:
       #     resource-group: ${{ secrets.AZURE_RESOURCE_GROUP }}
       #     cluster-name: ${{ secrets.AZURE_CLUSTER_NAME }}
 
-      # - name: Deploy to AKS
+      # - name: Substitute Environment Variables in Manifests
+      #   env:
+      #     DB_HOST: "notification-db"
+      #     DB_PORT: "5432"
+      #     DB_USERNAME: "postgres"
+      #     DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+      #     DB_DATABASE: "notification-db"
+      #     RABBITMQ_HOST: "rabbitmq-service"
+      #     RABBITMQ_PORT: "5672"
+      #     RABBITMQ_USERNAME: "chatmicroservice"
+      #     RABBITMQ_PASSWORD: ${{ secrets.RABBITMQ_PASSWORD }}
+      #   run: |
+      #     envsubst < k8s/deployments/notification-service/notification-service-migration-job.yaml > temp_job.yaml && mv temp_job.yaml k8s/deployments/notification-service/notification-service-migration-job.yaml
+      #     envsubst < k8s/deployments/notification-service/notification-service-deployment.yaml > temp_dep.yaml && mv temp_dep.yaml k8s/deployments/notification-service/notification-service-deployment.yaml
+
+      # - name: Deploy Database Migration Job
       #   uses: Azure/k8s-deploy@v5
       #   with:
       #     action: deploy
       #     manifests: |
-      #       k8s/deployments/notification-service-deployment.yaml
-      #       k8s/services/notification-service-service.yaml
+      #       k8s/deployments/notification-service/notification-service-migration-job.yaml
       #     images: |
       #       ${{ secrets.DOCKER_USERNAME }}/notification-service:${{ steps.meta.outputs.version }}
+
+      # - name: Wait for Migration to Complete
+      #   run: |
+      #     kubectl wait --for=condition=complete job/notification-service-migration-job --timeout=180s
+
+      # - name: Deploy Main Application to AKS
+      #   uses: Azure/k8s-deploy@v5
+      #   with:
+      #     action: deploy
+      #     manifests: |
+      #       k8s/deployments/notification-service/notification-service-deployment.yaml
+      #       k8s/deployments/notification-service/notification-service-service.yaml
+      #     images: |
+      #       ${{ secrets.DOCKER_USERNAME }}/notification-service:${{ steps.meta.outputs.version }}
+
+      # - name: Clean up Migration Job
+      #   run: |
+      #     kubectl delete job notification-service-migration-job --ignore-not-found=true
