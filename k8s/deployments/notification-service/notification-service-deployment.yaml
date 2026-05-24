@@ -20,7 +20,7 @@ spec:
           image: ${DOCKER_USERNAME}/${DOCKER_IMAGE}
           imagePullPolicy: Always
           ports:
-            - containerPort: 8080
+            - containerPort: ${APP_CONTAINER_PORT}
           env:
             - name: ASPNETCORE_ENVIRONMENT
               value: Production
@@ -52,12 +52,12 @@ spec:
           readinessProbe:
             httpGet:
               path: /ready
-              port: 8080
+              port: ${APP_CONTAINER_PORT}
             initialDelaySeconds: 5
             periodSeconds: 10
           livenessProbe:
             httpGet:
               path: /live
-              port: 8080
+              port: ${APP_CONTAINER_PORT}
             initialDelaySeconds: 15
             periodSeconds: 60
