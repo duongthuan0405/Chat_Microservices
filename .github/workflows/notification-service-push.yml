@@ -7,7 +7,17 @@ on:
     paths:
       - 'services/notification-service/**'
       - '.github/workflows/notification-service-push.yml'
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: Environment name
+        required: true
+        default: production
 
+      imageTag:
+        description: Docker image tag
+        required: true
+        
 jobs:
   build-publish:
     name: Build & Publish to Docker Hub
