@@ -1,4 +1,4 @@
-name: Chat Service - Pull Request to mai CI
+name: Chat Service - Pull Request to main CI
 
 on:
   pull_request:
