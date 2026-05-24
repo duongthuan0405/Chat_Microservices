@@ -1,4 +1,4 @@
-name: Notification Service - Push CI/CD
+name: Notification Service - Push to main CI/CD
 
 on:
   push:
@@ -6,7 +6,7 @@ on:
       - main
     paths:
       - 'services/notification-service/**'
-      - '.github/workflows/notification-service-push.yml'
+      - '.github/workflows/notification-service-push-main.yml'
 
   workflow_dispatch:
     inputs:
@@ -56,7 +56,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ${{ secrets.DOCKER_USERNAME }}/notification-service
+          images: ${{ secrets.DOCKER_USERNAME }}/${{secrets.DOCKER_IMAGE}}
           tags: |
             type=sha,format=long
             latest
@@ -124,7 +124,7 @@ jobs:
       #       k8s/deployments/notification-service/notification-service-deployment.yaml
       #       k8s/deployments/notification-service/notification-service-service.yaml
       #     images: |
-      #       ${{ secrets.DOCKER_USERNAME }}/notification-service:${{ steps.meta.outputs.version }}
+      #       ${{ secrets.DOCKER_USERNAME }}/${{ secrets.DOCKER_IMAGE}}:${{ steps.meta.outputs.version }}
 
       # - name: Clean up Migration Job
       #   run: |

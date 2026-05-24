@@ -6,7 +6,7 @@ on:
       - main
     paths:
       - 'services/chat-service/**'
-      - '.github/workflows/chat-service-pr.yml'
+      - '.github/workflows/chat-service-pr-main.yml'
 
 jobs:
   build:

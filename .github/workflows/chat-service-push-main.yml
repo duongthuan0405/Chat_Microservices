@@ -6,7 +6,7 @@ on:
       - main
     paths:
       - 'services/chat-service/**'
-      - '.github/workflows/chat-service-push.yml'
+      - '.github/workflows/chat-service-push-main.yml'
 
   workflow_dispatch:
     inputs:

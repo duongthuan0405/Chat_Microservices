@@ -1,4 +1,4 @@
-name: Notification Service - Pull Request CI
+name: Notification Service - Pull Request to main CI
 
 on:
   pull_request:
@@ -6,7 +6,7 @@ on:
       - main
     paths:
       - 'services/notification-service/**'
-      - '.github/workflows/notification-service-pr.yml'
+      - '.github/workflows/notification-service-pr-main.yml'
 
 jobs:
   build:
