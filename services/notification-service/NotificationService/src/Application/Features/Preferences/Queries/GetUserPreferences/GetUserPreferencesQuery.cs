@@ -34,13 +34,7 @@ public class GetUserPreferencesQueryHandler : IRequestHandler<GetUserPreferences
         
         if (preference == null)
         {
-            // Create default preference using the builder
-            preference = new NotificationPreference.NotificationPreferenceBuilder()
-                .WithUserId(request.UserId)
-                .WithEnablePush(true)
-                .Build();
-
-            await _preferenceRepository.AddAsync(preference, cancellationToken);
+            throw new NotificationService.Application.Exceptions.NotFoundException($"Notification preferences for user '{request.UserId}' were not found.");
         }
 
         return new GetUserPreferencesQueryResponse

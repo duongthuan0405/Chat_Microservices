@@ -1,0 +1,12 @@
+{
+  "Version": 1,
+  "Hash": "MH1mKsCA8lURm/qHDLCXrS1XmFW6EIyPXWFFnxmRng8=",
+  "Source": "ChatService",
+  "BasePath": "_content/ChatService",
+  "Mode": "Default",
+  "ManifestType": "Publish",
+  "ReferencedProjectsConfiguration": [],
+  "DiscoveryPatterns": [],
+  "Assets": [],
+  "Endpoints": []
+}
