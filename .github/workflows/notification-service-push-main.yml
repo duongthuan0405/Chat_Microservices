@@ -1,0 +1,131 @@
+name: Notification Service - Push to main CI/CD
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'services/notification-service/**'
+      - '.github/workflows/notification-service-push-main.yml'
+
+  workflow_dispatch:
+    inputs:
+      imageTag:
+        description: Docker image tag
+        required: true
+        
+jobs:
+  build-publish:
+    name: Build & Publish to Docker Hub
+    runs-on: ubuntu-latest
+    environment: NotificationServiceProduction
+    defaults: 
+      run: 
+        working-directory: ./services/notification-service/NotificationService/
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup .NET SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '9.0.x'
+          cache: true
+          cache-dependency-path: services/notification-service/NotificationService/NotificationService.csproj
+
+      - name: Restore NuGet Packages
+        run: dotnet restore
+
+      - name: Build Project
+        run: dotnet build --configuration Release --no-restore
+
+      - name: Run Tests
+        run: echo "Test if have some test cases"
+
+      - name: Setup Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Extract Docker Metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ secrets.DOCKER_USERNAME }}/${{secrets.DOCKER_IMAGE}}
+          tags: |
+            type=sha,format=long
+            latest
+
+      - name: Build and Push Docker Image
+        uses: docker/build-push-action@v6
+        with:
+          context: services/notification-service/NotificationService/
+          file: services/notification-service/NotificationService/Dockerfile
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+      
+      - name: Fake Deployment
+        run: echo "Fake Deployment"
+      
+      # - name: Azure Login
+      #   uses: azure/login@v2
+      #   with:
+      #     creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      # - name: Set AKS Context
+      #   uses: azure/aks-set-context@v4
+      #   with:
+      #     resource-group: ${{ secrets.AZURE_RESOURCE_GROUP }}
+      #     cluster-name: ${{ secrets.AZURE_CLUSTER_NAME }}
+
+      # - name: Substitute Environment Variables in Manifests
+      #   env:
+      #     DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
+      #     DOCKER_IMAGE: "${{ secrets.DOCKER_IMAGE }}"
+      #     DB_HOST: "${{ secrets.DB_HOST }}"
+      #     DB_PORT: "${{ secrets.DB_PORT }}"
+      #     DB_USERNAME: "${{ secrets.DB_USERNAME }}"
+      #     DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+      #     DB_DATABASE: "${{ secrets.DB_DATABASE }}"
+      #     RABBITMQ_HOST: "${{ secrets.RABBITMQ_HOST }}"
+      #     RABBITMQ_PORT: "${{ secrets.RABBITMQ_PORT }}"
+      #     RABBITMQ_USERNAME: "${{ secrets.RABBITMQ_USERNAME }}"
+      #     RABBITMQ_PASSWORD: ${{ secrets.RABBITMQ_PASSWORD }}
+      #   run: |
+      #     envsubst < k8s/deployments/notification-service/notification-service-migration-job.yaml > temp_job.yaml && mv temp_job.yaml k8s/deployments/notification-service/notification-service-migration-job.yaml
+      #     envsubst < k8s/deployments/notification-service/notification-service-deployment.yaml > temp_dep.yaml && mv temp_dep.yaml k8s/deployments/notification-service/notification-service-deployment.yaml
+
+      # - name: Deploy Database Migration Job
+      #   uses: Azure/k8s-deploy@v5
+      #   with:
+      #     action: deploy
+      #     manifests: |
+      #       k8s/deployments/notification-service/notification-service-migration-job.yaml
+      #     images: |
+      #       ${{ secrets.DOCKER_USERNAME }}/notification-service:${{ steps.meta.outputs.version }}
+
+      # - name: Wait for Migration to Complete
+      #   run: |
+      #     kubectl wait --for=condition=complete job/notification-service-migration-job --timeout=180s
+
+      # - name: Deploy Main Application to AKS
+      #   uses: Azure/k8s-deploy@v5
+      #   with:
+      #     action: deploy
+      #     manifests: |
+      #       k8s/deployments/notification-service/notification-service-deployment.yaml
+      #       k8s/deployments/notification-service/notification-service-service.yaml
+      #     images: |
+      #       ${{ secrets.DOCKER_USERNAME }}/${{ secrets.DOCKER_IMAGE}}:${{ steps.meta.outputs.version }}
+
+      # - name: Clean up Migration Job
+      #   run: |
+      #     kubectl delete job notification-service-migration-job --ignore-not-found=true
