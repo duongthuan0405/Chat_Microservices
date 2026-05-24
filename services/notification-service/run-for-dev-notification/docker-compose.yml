@@ -15,18 +15,5 @@ services:
     volumes:
       - notification_data:/var/lib/postgresql/data
 
-  notification-service:
-    image: duongthuan0405/notification-service-dev:latest
-    container_name: ${NOTIFICATION_SERVICE_CONTAINER_NAME}
-    env_file:
-      - .env.service
-    ports:
-      - "${ASPNETCORE_HOST_PORT}:${ASPNETCORE_CONTAINER_PORT}"
-    depends_on:
-      - notification-db
-    volumes:
-      - notification_service:/app/
-
 volumes:
   notification_data:
-  notification_service:

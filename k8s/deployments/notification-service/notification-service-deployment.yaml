@@ -17,7 +17,7 @@ spec:
     spec:
       containers:
         - name: notification-service
-          image: DOCKER_IMAGE_PLACEHOLDER
+          image: ${DOCKER_USERNAME}/${DOCKER_IMAGE}
           imagePullPolicy: Always
           ports:
             - containerPort: 8080
