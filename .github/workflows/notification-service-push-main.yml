@@ -110,7 +110,7 @@ jobs:
       #     manifests: |
       #       k8s/deployments/notification-service/notification-service-migration-job.yaml
       #     images: |
-      #       ${{ secrets.DOCKER_USERNAME }}/notification-service:${{ steps.meta.outputs.version }}
+      #       ${{ secrets.DOCKER_USERNAME }}/${{ secrets.DOCKER_IMAGE }}:${{ steps.meta.outputs.version }}
 
       # - name: Wait for Migration to Complete
       #   run: |
