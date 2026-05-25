@@ -1,0 +1,33 @@
+2026-05-25 14:52:00.041 +07:00 [INF] Running database migrations for ChatService...
+2026-05-25 14:52:01.573 +07:00 [ERR] Failed executing DbCommand (36ms) [Parameters=[], CommandType='"Text"', CommandTimeout='30']
+SELECT "MigrationId", "ProductVersion"
+FROM "__EFMigrationsHistory"
+ORDER BY "MigrationId";
+2026-05-25 14:52:01.916 +07:00 [INF] Acquiring an exclusive lock for migration application. See https://aka.ms/efcore-docs-migrations-lock for more information if this takes too long.
+2026-05-25 14:52:01.977 +07:00 [INF] Applying migration '20260521015817_ADD_Add_MessageTb_MessageReadStateTb'.
+2026-05-25 14:52:02.173 +07:00 [INF] Executed DbCommand (26ms) [Parameters=[], CommandType='"Text"', CommandTimeout='30']
+INSERT INTO "__EFMigrationsHistory" ("MigrationId", "ProductVersion")
+VALUES ('20260521015817_ADD_Add_MessageTb_MessageReadStateTb', '9.0.1');
+2026-05-25 14:52:02.177 +07:00 [INF] Applying migration '20260521042616_ADD_Nav_Props_Collections'.
+2026-05-25 14:52:02.233 +07:00 [INF] Executed DbCommand (28ms) [Parameters=[], CommandType='"Text"', CommandTimeout='30']
+ALTER TABLE "MessageReadStatus" ADD CONSTRAINT "FK_MessageReadStatus_Message_LastReadMessageId" FOREIGN KEY ("LastReadMessageId") REFERENCES "Message" ("Id") ON DELETE RESTRICT;
+2026-05-25 14:52:02.261 +07:00 [INF] Executed DbCommand (27ms) [Parameters=[], CommandType='"Text"', CommandTimeout='30']
+INSERT INTO "__EFMigrationsHistory" ("MigrationId", "ProductVersion")
+VALUES ('20260521042616_ADD_Nav_Props_Collections', '9.0.1');
+2026-05-25 14:52:02.262 +07:00 [INF] Applying migration '20260521063451_FIX_MessageReadStatus_Only_Have_LatestReadAt'.
+2026-05-25 14:52:02.291 +07:00 [INF] Executed DbCommand (27ms) [Parameters=[], CommandType='"Text"', CommandTimeout='30']
+ALTER TABLE "MessageReadStatus" DROP CONSTRAINT "FK_MessageReadStatus_Message_LastReadMessageId";
+2026-05-25 14:52:02.394 +07:00 [INF] Executed DbCommand (101ms) [Parameters=[], CommandType='"Text"', CommandTimeout='30']
+DROP INDEX "IX_MessageReadStatus_LastReadMessageId";
+2026-05-25 14:52:02.422 +07:00 [INF] Executed DbCommand (27ms) [Parameters=[], CommandType='"Text"', CommandTimeout='30']
+ALTER TABLE "MessageReadStatus" DROP COLUMN "LastReadMessageId";
+2026-05-25 14:52:02.451 +07:00 [INF] Executed DbCommand (28ms) [Parameters=[], CommandType='"Text"', CommandTimeout='30']
+ALTER TABLE "MessageReadStatus" RENAME COLUMN "ReadAt" TO "LastReadAt";
+2026-05-25 14:52:02.478 +07:00 [INF] Executed DbCommand (26ms) [Parameters=[], CommandType='"Text"', CommandTimeout='30']
+INSERT INTO "__EFMigrationsHistory" ("MigrationId", "ProductVersion")
+VALUES ('20260521063451_FIX_MessageReadStatus_Only_Have_LatestReadAt', '9.0.1');
+2026-05-25 14:52:02.479 +07:00 [INF] Applying migration '20260521065039_ADD_Auto_Change_to_UTC_before_store_PSQL'.
+2026-05-25 14:52:02.506 +07:00 [INF] Executed DbCommand (25ms) [Parameters=[], CommandType='"Text"', CommandTimeout='30']
+INSERT INTO "__EFMigrationsHistory" ("MigrationId", "ProductVersion")
+VALUES ('20260521065039_ADD_Auto_Change_to_UTC_before_store_PSQL', '9.0.1');
+2026-05-25 14:52:02.541 +07:00 [INF] Database migrations completed successfully.
