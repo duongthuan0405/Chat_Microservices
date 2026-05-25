@@ -59,7 +59,7 @@ public class Program
 
             app.MapGet("/test", (HttpContext httpContext) =>
             {
-                return "Hello World!";
+                return "Hello World! I am Notification Service";
             })
             .WithName("GetTest");
 
