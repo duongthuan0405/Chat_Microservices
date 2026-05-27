@@ -25,10 +25,7 @@ Content-Type: application/json
 ### Decode JWT token (replace TOKEN with the token from login response)
 POST {{auth_service_HostAddress}}/auth/decode
 Content-Type: application/json
-
-{
-  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
-}
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 
 ###
 

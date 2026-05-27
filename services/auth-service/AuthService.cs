@@ -23,7 +23,7 @@ public sealed record LoginRequest(string Email, string Password);
 
 public sealed record AuthResult(string Id, string Email, string Token, DateTime ExpiresAt);
 
-public sealed record TokenClaims(string Id, string Email, string Token, DateTime ExpiresAt);
+public sealed record TokenClaims(string Id, string Email, DateTime ExpiresAt);
 
 public sealed record UpdateProfileRequest(string Name, string PhoneNumber, string AvatarUrl, string Gender);
 
@@ -106,7 +106,6 @@ public sealed class AuthenticationService
         return new TokenClaims(
             GetRequiredClaim(principal, ClaimTypes.NameIdentifier),
             GetRequiredClaim(principal, ClaimTypes.Email),
-            token,
             jwtToken.ValidTo
         );
     }

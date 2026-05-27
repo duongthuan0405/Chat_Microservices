@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using System.IO;
 using Microsoft.IdentityModel.Tokens;
+using Microsoft.AspNetCore.Http;
 using AuthService.Data;
 using AuthService;
 
@@ -68,11 +69,20 @@ app.MapPost("/auth/login", async (AuthenticationService authService, LoginReques
 })
 .WithName("Login");
 
-app.MapPost("/auth/decode", (AuthenticationService authService, DecodeTokenRequest request) =>
+app.MapPost("/auth/decode", (AuthenticationService authService, HttpRequest httpRequest) =>
 {
     try
     {
-        return Results.Ok(authService.DecodeToken(request.Token));
+        if (!httpRequest.Headers.TryGetValue("Authorization", out var authHeader))
+            return Results.BadRequest(new { message = "Missing Authorization header" });
+
+        var header = authHeader.ToString();
+        const string bearer = "Bearer ";
+        if (!header.StartsWith(bearer, StringComparison.OrdinalIgnoreCase))
+            return Results.BadRequest(new { message = "Authorization header must be 'Bearer <token>'" });
+
+        var token = header[bearer.Length..].Trim();
+        return Results.Ok(authService.DecodeToken(token));
     }
     catch (ArgumentException exception)
     {

@@ -118,11 +118,7 @@ Content-Type: application/json
 
 ```http
 POST /auth/decode
-Content-Type: application/json
-
-{
-  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
-}
+Authorization: Bearer <token>
 ```
 
 **Response:**
