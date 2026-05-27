@@ -5,17 +5,24 @@ import (
 	"errors"
 	"friendship-service/internal/domain"
 	"strings"
+	"time"
 )
 
 type friendshipUsecase struct {
-	repo         domain.FriendshipRepository
-	userVerifier domain.UserVerifier
+	repo           domain.FriendshipRepository
+	userProvider   domain.UserProvider
+	eventPublisher domain.EventPublisher
 }
 
-func NewFriendshipUsecase(repo domain.FriendshipRepository, userVerifier domain.UserVerifier) domain.FriendshipUsecase {
+func NewFriendshipUsecase(
+	repo domain.FriendshipRepository,
+	userProvider domain.UserProvider,
+	eventPublisher domain.EventPublisher,
+) domain.FriendshipUsecase {
 	return &friendshipUsecase{
-		repo:         repo,
-		userVerifier: userVerifier,
+		repo:           repo,
+		userProvider:   userProvider,
+		eventPublisher: eventPublisher,
 	}
 }
 
@@ -25,7 +32,13 @@ func (uc *friendshipUsecase) RequestFriend(ctx context.Context, userID, friendID
 		return err
 	}
 
-	if err := uc.ensureUsersExist(ctx, userID, friendID); err != nil {
+	senderProfile, err := uc.userProvider.GetProfile(ctx, userID)
+	if err != nil {
+		return err
+	}
+
+	receiverProfile, err := uc.userProvider.GetProfile(ctx, friendID)
+	if err != nil {
 		return err
 	}
 
@@ -54,7 +67,20 @@ func (uc *friendshipUsecase) RequestFriend(ctx context.Context, userID, friendID
 		return errors.New("không thể gửi lời mời kết bạn")
 	}
 
-	return uc.repo.SendRequest(ctx, userID, friendID)
+	if err := uc.repo.SendRequest(ctx, userID, friendID); err != nil {
+		return err
+	}
+
+	event := domain.FriendRequestSentIntegrationEvent{
+		SenderID:        senderProfile.ID,
+		SenderName:      senderProfile.Name,
+		SenderEmail:     senderProfile.Email,
+		SenderAvatarURL: senderProfile.AvatarURL,
+		ReceiverID:      receiverProfile.ID,
+		Timestamp:       time.Now().UTC(),
+	}
+
+	return uc.eventPublisher.PublishFriendRequestSent(ctx, event)
 }
 
 func (uc *friendshipUsecase) AcceptFriend(ctx context.Context, userID, friendID string) error {
@@ -63,7 +89,13 @@ func (uc *friendshipUsecase) AcceptFriend(ctx context.Context, userID, friendID 
 		return err
 	}
 
-	if err := uc.ensureUsersExist(ctx, userID, friendID); err != nil {
+	accepterProfile, err := uc.userProvider.GetProfile(ctx, userID)
+	if err != nil {
+		return err
+	}
+
+	requesterProfile, err := uc.userProvider.GetProfile(ctx, friendID)
+	if err != nil {
 		return err
 	}
 
@@ -76,7 +108,20 @@ func (uc *friendshipUsecase) AcceptFriend(ctx context.Context, userID, friendID 
 		return errors.New("không có lời mời kết bạn hợp lệ để chấp nhận")
 	}
 
-	return uc.repo.AcceptRequest(ctx, userID, friendID)
+	if err := uc.repo.AcceptRequest(ctx, userID, friendID); err != nil {
+		return err
+	}
+
+	event := domain.FriendRequestAcceptedIntegrationEvent{
+		SenderID:        accepterProfile.ID,
+		SenderName:      accepterProfile.Name,
+		SenderEmail:     accepterProfile.Email,
+		SenderAvatarURL: accepterProfile.AvatarURL,
+		ReceiverID:      requesterProfile.ID,
+		Timestamp:       time.Now().UTC(),
+	}
+
+	return uc.eventPublisher.PublishFriendRequestAccepted(ctx, event)
 }
 
 func (uc *friendshipUsecase) RejectFriend(ctx context.Context, userID, friendID string) error {
@@ -139,7 +184,11 @@ func (uc *friendshipUsecase) BlockUser(ctx context.Context, userID, friendID str
 		return err
 	}
 
-	if err := uc.ensureUsersExist(ctx, userID, friendID); err != nil {
+	if _, err := uc.userProvider.GetProfile(ctx, userID); err != nil {
+		return err
+	}
+
+	if _, err := uc.userProvider.GetProfile(ctx, friendID); err != nil {
 		return err
 	}
 
@@ -216,28 +265,6 @@ func (uc *friendshipUsecase) GetStatus(ctx context.Context, userID, friendID str
 		FriendID: friendID,
 		Status:   status,
 	}, nil
-}
-
-func (uc *friendshipUsecase) ensureUsersExist(ctx context.Context, userID, friendID string) error {
-	userExists, err := uc.userVerifier.Exists(ctx, userID)
-	if err != nil {
-		return err
-	}
-
-	if !userExists {
-		return errors.New("người dùng hiện tại không tồn tại")
-	}
-
-	friendExists, err := uc.userVerifier.Exists(ctx, friendID)
-	if err != nil {
-		return err
-	}
-
-	if !friendExists {
-		return errors.New("người dùng cần thao tác không tồn tại")
-	}
-
-	return nil
 }
 
 func validateUserID(userID string) (string, error) {

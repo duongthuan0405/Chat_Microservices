@@ -4,8 +4,10 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"friendship-service/internal/domain"
 	"net/http"
 	"net/url"
+	"strings"
 	"time"
 )
 
@@ -15,13 +17,21 @@ type UserClient struct {
 	client   *http.Client
 }
 
-type userExistsResponse struct {
-	Exists bool `json:"exists"`
+type userProfileResponse struct {
+	ID          string `json:"id"`
+	Email       string `json:"email"`
+	Name        string `json:"name"`
+	PhoneNumber string `json:"phoneNumber"`
+	AvatarURL   string `json:"avatarUrl"`
+	CreatedAt   string `json:"createdAt"`
+	UpdatedAt   string `json:"updatedAt"`
+	Gender      string `json:"gender"`
+	Message     string `json:"message"`
 }
 
 func NewUserClient(baseURL string, required bool, timeout time.Duration) *UserClient {
 	return &UserClient{
-		baseURL:  baseURL,
+		baseURL:  strings.TrimRight(baseURL, "/"),
 		required: required,
 		client: &http.Client{
 			Timeout: timeout,
@@ -29,20 +39,33 @@ func NewUserClient(baseURL string, required bool, timeout time.Duration) *UserCl
 	}
 }
 
-func (c *UserClient) Exists(ctx context.Context, userID string) (bool, error) {
-	if c.baseURL == "" {
-		if c.required {
-			return false, fmt.Errorf("user-service is required but USER_SERVICE_BASE_URL is empty")
-		}
+func (c *UserClient) GetProfile(ctx context.Context, userID string) (domain.UserProfile, error) {
+	userID = strings.TrimSpace(userID)
 
-		return true, nil
+	if userID == "" {
+		return domain.UserProfile{}, fmt.Errorf("user id is required")
 	}
 
-	endpoint := fmt.Sprintf("%s/internal/users/%s/exists", c.baseURL, url.PathEscape(userID))
+	if c.baseURL == "" {
+		if c.required {
+			return domain.UserProfile{}, fmt.Errorf("user-service is required but USER_SERVICE_BASE_URL is empty")
+		}
+
+		return domain.UserProfile{
+			ID:          userID,
+			Email:       "",
+			Name:        userID,
+			PhoneNumber: "",
+			AvatarURL:   "",
+			Gender:      "",
+		}, nil
+	}
+
+	endpoint := fmt.Sprintf("%s/internal/users/%s", c.baseURL, url.PathEscape(userID))
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint, nil)
 	if err != nil {
-		return false, err
+		return domain.UserProfile{}, err
 	}
 
 	req.Header.Set("Accept", "application/json")
@@ -50,22 +73,45 @@ func (c *UserClient) Exists(ctx context.Context, userID string) (bool, error) {
 
 	resp, err := c.client.Do(req)
 	if err != nil {
-		return false, fmt.Errorf("failed to call user-service: %w", err)
+		return domain.UserProfile{}, fmt.Errorf("failed to call user-service: %w", err)
 	}
 	defer resp.Body.Close()
 
+	var body userProfileResponse
+	_ = json.NewDecoder(resp.Body).Decode(&body)
+
 	if resp.StatusCode == http.StatusNotFound {
-		return false, nil
+		if strings.TrimSpace(body.Message) != "" {
+			return domain.UserProfile{}, fmt.Errorf(body.Message)
+		}
+
+		return domain.UserProfile{}, fmt.Errorf("user %s does not exist", userID)
 	}
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		return false, fmt.Errorf("user-service returned status %d", resp.StatusCode)
+		if strings.TrimSpace(body.Message) != "" {
+			return domain.UserProfile{}, fmt.Errorf("user-service error: %s", body.Message)
+		}
+
+		return domain.UserProfile{}, fmt.Errorf("user-service returned status %d", resp.StatusCode)
 	}
 
-	var body userExistsResponse
-	if err := json.NewDecoder(resp.Body).Decode(&body); err != nil {
-		return false, err
+	profileID := strings.TrimSpace(body.ID)
+	if profileID == "" {
+		return domain.UserProfile{}, fmt.Errorf("user-service response missing id")
 	}
 
-	return body.Exists, nil
+	name := strings.TrimSpace(body.Name)
+	if name == "" {
+		name = profileID
+	}
+
+	return domain.UserProfile{
+		ID:          profileID,
+		Email:       strings.TrimSpace(body.Email),
+		Name:        name,
+		PhoneNumber: strings.TrimSpace(body.PhoneNumber),
+		AvatarURL:   strings.TrimSpace(body.AvatarURL),
+		Gender:      strings.TrimSpace(body.Gender),
+	}, nil
 }

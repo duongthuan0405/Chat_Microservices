@@ -11,14 +11,18 @@ import (
 )
 
 type Config struct {
-	ServerPort             string
-	Neo4jURI               string
-	Neo4jUser              string
-	Neo4jPassword          string
-	UserServiceBaseURL     string
-	UserServiceRequired    bool
-	ShutdownTimeout        time.Duration
-	ExternalRequestTimeout time.Duration
+	ServerPort                    string
+	Neo4jURI                      string
+	Neo4jUser                     string
+	Neo4jPassword                 string
+	UserServiceBaseURL            string
+	UserServiceRequired           bool
+	ShutdownTimeout               time.Duration
+	ExternalRequestTimeout        time.Duration
+	RabbitMQURL                   string
+	RabbitMQRequired              bool
+	FriendRequestSentExchange     string
+	FriendRequestAcceptedExchange string
 }
 
 func Load() (Config, error) {
@@ -26,14 +30,18 @@ func Load() (Config, error) {
 	_ = godotenv.Load(".env")
 
 	cfg := Config{
-		ServerPort:             getEnv("SERVER_PORT", "8081"),
-		Neo4jURI:               strings.TrimSpace(os.Getenv("NEO4J_URI")),
-		Neo4jUser:              strings.TrimSpace(os.Getenv("NEO4J_USER")),
-		Neo4jPassword:          strings.TrimSpace(os.Getenv("NEO4J_PASSWORD")),
-		UserServiceBaseURL:     strings.TrimRight(strings.TrimSpace(os.Getenv("USER_SERVICE_BASE_URL")), "/"),
-		UserServiceRequired:    getEnvBool("USER_SERVICE_REQUIRED", false),
-		ShutdownTimeout:        getEnvDurationSeconds("SHUTDOWN_TIMEOUT_SECONDS", 10),
-		ExternalRequestTimeout: getEnvDurationSeconds("EXTERNAL_REQUEST_TIMEOUT_SECONDS", 3),
+		ServerPort:                    getEnv("SERVER_PORT", "8081"),
+		Neo4jURI:                      strings.TrimSpace(os.Getenv("NEO4J_URI")),
+		Neo4jUser:                     strings.TrimSpace(os.Getenv("NEO4J_USER")),
+		Neo4jPassword:                 strings.TrimSpace(os.Getenv("NEO4J_PASSWORD")),
+		UserServiceBaseURL:            strings.TrimRight(strings.TrimSpace(os.Getenv("USER_SERVICE_BASE_URL")), "/"),
+		UserServiceRequired:           getEnvBool("USER_SERVICE_REQUIRED", false),
+		ShutdownTimeout:               getEnvDurationSeconds("SHUTDOWN_TIMEOUT_SECONDS", 10),
+		ExternalRequestTimeout:        getEnvDurationSeconds("EXTERNAL_REQUEST_TIMEOUT_SECONDS", 3),
+		RabbitMQURL:                   strings.TrimSpace(os.Getenv("RABBITMQ_URL")),
+		RabbitMQRequired:              getEnvBool("RABBITMQ_REQUIRED", false),
+		FriendRequestSentExchange:     getEnv("FRIEND_REQUEST_SENT_EXCHANGE", "friend-request-sent"),
+		FriendRequestAcceptedExchange: getEnv("FRIEND_REQUEST_ACCEPTED_EXCHANGE", "friend-request-accepted"),
 	}
 
 	if cfg.Neo4jURI == "" {

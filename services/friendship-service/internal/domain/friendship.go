@@ -1,6 +1,9 @@
 package domain
 
-import "context"
+import (
+	"context"
+	"time"
+)
 
 const (
 	StatusNone            = "NONE"
@@ -22,6 +25,33 @@ type FriendshipStatusResponse struct {
 	Status   string `json:"status"`
 }
 
+type UserProfile struct {
+	ID          string `json:"id"`
+	Email       string `json:"email"`
+	Name        string `json:"name"`
+	PhoneNumber string `json:"phoneNumber"`
+	AvatarURL   string `json:"avatarUrl"`
+	Gender      string `json:"gender"`
+}
+
+type FriendRequestSentIntegrationEvent struct {
+	SenderID        string    `json:"senderId"`
+	SenderName      string    `json:"senderName"`
+	SenderEmail     string    `json:"senderEmail"`
+	SenderAvatarURL string    `json:"senderAvatarUrl"`
+	ReceiverID      string    `json:"receiverId"`
+	Timestamp       time.Time `json:"timestamp"`
+}
+
+type FriendRequestAcceptedIntegrationEvent struct {
+	SenderID        string    `json:"senderId"`
+	SenderName      string    `json:"senderName"`
+	SenderEmail     string    `json:"senderEmail"`
+	SenderAvatarURL string    `json:"senderAvatarUrl"`
+	ReceiverID      string    `json:"receiverId"`
+	Timestamp       time.Time `json:"timestamp"`
+}
+
 type FriendshipRepository interface {
 	EnsureSchema(ctx context.Context) error
 	SendRequest(ctx context.Context, userID, friendID string) error
@@ -37,8 +67,13 @@ type FriendshipRepository interface {
 	GetRelationshipStatus(ctx context.Context, userID, friendID string) (string, error)
 }
 
-type UserVerifier interface {
-	Exists(ctx context.Context, userID string) (bool, error)
+type UserProvider interface {
+	GetProfile(ctx context.Context, userID string) (UserProfile, error)
+}
+
+type EventPublisher interface {
+	PublishFriendRequestSent(ctx context.Context, event FriendRequestSentIntegrationEvent) error
+	PublishFriendRequestAccepted(ctx context.Context, event FriendRequestAcceptedIntegrationEvent) error
 }
 
 type FriendshipUsecase interface {

@@ -5,6 +5,8 @@ import (
 	"errors"
 	"friendship-service/internal/client"
 	"friendship-service/internal/config"
+	"friendship-service/internal/domain"
+	"friendship-service/internal/events"
 	"friendship-service/internal/repository"
 	"friendship-service/internal/server"
 	"friendship-service/internal/usecase"
@@ -50,7 +52,34 @@ func main() {
 		cfg.ExternalRequestTimeout,
 	)
 
-	friendshipUsecase := usecase.NewFriendshipUsecase(friendshipRepo, userClient)
+	var eventPublisher domain.EventPublisher
+
+	if cfg.RabbitMQURL == "" {
+		if cfg.RabbitMQRequired {
+			log.Fatal("RABBITMQ_URL is required when RABBITMQ_REQUIRED=true")
+		}
+
+		eventPublisher = events.NewNoopPublisher()
+		log.Println("RabbitMQ is disabled, using noop publisher")
+	} else {
+		rabbitPublisher, err := events.NewRabbitMQPublisher(
+			cfg.RabbitMQURL,
+			cfg.FriendRequestSentExchange,
+			cfg.FriendRequestAcceptedExchange,
+		)
+		if err != nil {
+			log.Fatalf("rabbitmq publisher error: %v", err)
+		}
+		defer rabbitPublisher.Close()
+
+		eventPublisher = rabbitPublisher
+	}
+
+	friendshipUsecase := usecase.NewFriendshipUsecase(
+		friendshipRepo,
+		userClient,
+		eventPublisher,
+	)
 
 	httpServer := server.New(cfg.Address(), friendshipUsecase)
 
