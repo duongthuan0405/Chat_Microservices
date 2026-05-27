@@ -73,6 +73,26 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+      - name: Prepare manifests
+        run: |
+          mkdir -p deploy-manifests
+          cp k8s/deployments/auth-service/auth-service-service.yaml deploy-manifests/
+          # Replace image placeholder with actual registry/image:tag
+          IMAGE="${{ secrets.AZURE_ACR_LOGIN_SERVER }}/${{ secrets.DOCKER_IMAGE }}:latest"
+          sed "s|image: .*|image: $IMAGE|" k8s/deployments/auth-service/auth-service-deployment.yaml > deploy-manifests/auth-service-deployment.yaml
+
+      - name: Copy manifests to VPS
+        uses: appleboy/scp-action@master
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USERNAME }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: ${{ secrets.VPS_SSH_PORT || '22' }}
+          source: |
+            deploy-manifests/auth-service-deployment.yaml
+            deploy-manifests/auth-service-service.yaml
+          target: /tmp/deploy-manifests/
       
       - name: SSH into vps
         uses: appleboy/ssh-action@master
@@ -84,3 +104,32 @@ jobs:
             # Pull the latest image
             podman login -u ${{ secrets.AZURE_ACR_USERNAME }} -p ${{ secrets.AZURE_ACR_PASSWORD }} ${{ secrets.AZURE_ACR_LOGIN_SERVER }}
             podman pull ${{ secrets.AZURE_ACR_LOGIN_SERVER }}/${{ secrets.DOCKER_IMAGE }}:latest
+
+            set -e
+            # Ensure kubectl can access the cluster (k3s fallback)
+            if [ -f /etc/rancher/k3s/k3s.yaml ]; then
+              export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
+            fi
+
+            # Create/update imagePullSecret for ACR
+            kubectl create secret docker-registry acr-secret \
+              --docker-server=${{ secrets.AZURE_ACR_LOGIN_SERVER }} \
+              --docker-username='${{ secrets.AZURE_ACR_USERNAME }}' \
+              --docker-password='${{ secrets.AZURE_ACR_PASSWORD }}' \
+              --dry-run=client -o yaml | kubectl apply -f -
+
+            # Create/update app secrets
+            kubectl create secret generic auth-service-secret \
+              --from-literal=DEFAULT_CONNECTION_STRING='${{ secrets.AUTH_CONNECTION_STRING }}' \
+              --from-literal=JWT_AUDIENCE='${{ secrets.JWT_AUDIENCE }}' \
+              --from-literal=JWT_ISSUER='${{ secrets.JWT_ISSUER }}' \
+              --from-literal=JWT_SECRET='${{ secrets.JWT_SECRET }}' \
+              --dry-run=client -o yaml | kubectl apply -f -
+
+            # Apply Service and Deployment manifests copied to VPS
+            kubectl apply -f /tmp/deploy-manifests/auth-service-service.yaml
+            kubectl apply -f /tmp/deploy-manifests/auth-service-deployment.yaml
+
+            # Show status
+            kubectl rollout status deployment/auth-service -n default || true
+            kubectl get pods -l app=auth-service -n default
