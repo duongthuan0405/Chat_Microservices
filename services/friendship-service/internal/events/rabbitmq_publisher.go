@@ -2,21 +2,17 @@ package events
 
 import (
 	"context"
-	"encoding/json"
-	"friendship-service/internal/domain"
 	"time"
 
 	amqp "github.com/rabbitmq/amqp091-go"
 )
 
 type RabbitMQPublisher struct {
-	connection              *amqp.Connection
-	channel                 *amqp.Channel
-	friendRequestSentEx     string
-	friendRequestAcceptedEx string
+	connection *amqp.Connection
+	channel    *amqp.Channel
 }
 
-func NewRabbitMQPublisher(url string, friendRequestSentEx string, friendRequestAcceptedEx string) (*RabbitMQPublisher, error) {
+func NewRabbitMQPublisher(url string, exchanges []string) (*RabbitMQPublisher, error) {
 	connection, err := amqp.Dial(url)
 	if err != nil {
 		return nil, err
@@ -29,20 +25,15 @@ func NewRabbitMQPublisher(url string, friendRequestSentEx string, friendRequestA
 	}
 
 	publisher := &RabbitMQPublisher{
-		connection:              connection,
-		channel:                 channel,
-		friendRequestSentEx:     friendRequestSentEx,
-		friendRequestAcceptedEx: friendRequestAcceptedEx,
+		connection: connection,
+		channel:    channel,
 	}
 
-	if err := publisher.declareExchange(friendRequestSentEx); err != nil {
-		_ = publisher.Close()
-		return nil, err
-	}
-
-	if err := publisher.declareExchange(friendRequestAcceptedEx); err != nil {
-		_ = publisher.Close()
-		return nil, err
+	for _, exchange := range exchanges {
+		if err := publisher.declareExchange(exchange); err != nil {
+			_ = publisher.Close()
+			return nil, err
+		}
 	}
 
 	return publisher, nil
@@ -60,23 +51,10 @@ func (p *RabbitMQPublisher) declareExchange(exchangeName string) error {
 	)
 }
 
-func (p *RabbitMQPublisher) PublishFriendRequestSent(ctx context.Context, event domain.FriendRequestSentIntegrationEvent) error {
-	return p.publish(ctx, p.friendRequestSentEx, event)
-}
-
-func (p *RabbitMQPublisher) PublishFriendRequestAccepted(ctx context.Context, event domain.FriendRequestAcceptedIntegrationEvent) error {
-	return p.publish(ctx, p.friendRequestAcceptedEx, event)
-}
-
-func (p *RabbitMQPublisher) publish(ctx context.Context, exchangeName string, payload any) error {
-	body, err := json.Marshal(payload)
-	if err != nil {
-		return err
-	}
-
+func (p *RabbitMQPublisher) Publish(ctx context.Context, exchange string, payload []byte) error {
 	return p.channel.PublishWithContext(
 		ctx,
-		exchangeName,
+		exchange,
 		"",
 		false,
 		false,
@@ -84,7 +62,7 @@ func (p *RabbitMQPublisher) publish(ctx context.Context, exchangeName string, pa
 			ContentType:  "application/json",
 			DeliveryMode: amqp.Persistent,
 			Timestamp:    time.Now().UTC(),
-			Body:         body,
+			Body:         payload,
 		},
 	)
 }

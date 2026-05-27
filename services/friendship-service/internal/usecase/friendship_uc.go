@@ -9,20 +9,17 @@ import (
 )
 
 type friendshipUsecase struct {
-	repo           domain.FriendshipRepository
-	userProvider   domain.UserProvider
-	eventPublisher domain.EventPublisher
+	repo         domain.FriendshipRepository
+	userProvider domain.UserProvider
 }
 
 func NewFriendshipUsecase(
 	repo domain.FriendshipRepository,
 	userProvider domain.UserProvider,
-	eventPublisher domain.EventPublisher,
 ) domain.FriendshipUsecase {
 	return &friendshipUsecase{
-		repo:           repo,
-		userProvider:   userProvider,
-		eventPublisher: eventPublisher,
+		repo:         repo,
+		userProvider: userProvider,
 	}
 }
 
@@ -67,10 +64,6 @@ func (uc *friendshipUsecase) RequestFriend(ctx context.Context, userID, friendID
 		return errors.New("không thể gửi lời mời kết bạn")
 	}
 
-	if err := uc.repo.SendRequest(ctx, userID, friendID); err != nil {
-		return err
-	}
-
 	event := domain.FriendRequestSentIntegrationEvent{
 		SenderID:        senderProfile.ID,
 		SenderName:      senderProfile.Name,
@@ -80,7 +73,7 @@ func (uc *friendshipUsecase) RequestFriend(ctx context.Context, userID, friendID
 		Timestamp:       time.Now().UTC(),
 	}
 
-	return uc.eventPublisher.PublishFriendRequestSent(ctx, event)
+	return uc.repo.CreateFriendRequestWithOutbox(ctx, userID, friendID, event)
 }
 
 func (uc *friendshipUsecase) AcceptFriend(ctx context.Context, userID, friendID string) error {
@@ -108,10 +101,6 @@ func (uc *friendshipUsecase) AcceptFriend(ctx context.Context, userID, friendID 
 		return errors.New("không có lời mời kết bạn hợp lệ để chấp nhận")
 	}
 
-	if err := uc.repo.AcceptRequest(ctx, userID, friendID); err != nil {
-		return err
-	}
-
 	event := domain.FriendRequestAcceptedIntegrationEvent{
 		SenderID:        accepterProfile.ID,
 		SenderName:      accepterProfile.Name,
@@ -121,7 +110,7 @@ func (uc *friendshipUsecase) AcceptFriend(ctx context.Context, userID, friendID 
 		Timestamp:       time.Now().UTC(),
 	}
 
-	return uc.eventPublisher.PublishFriendRequestAccepted(ctx, event)
+	return uc.repo.AcceptFriendRequestWithOutbox(ctx, userID, friendID, event)
 }
 
 func (uc *friendshipUsecase) RejectFriend(ctx context.Context, userID, friendID string) error {

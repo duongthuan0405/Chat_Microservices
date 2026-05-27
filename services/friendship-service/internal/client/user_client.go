@@ -3,6 +3,7 @@ package client
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"friendship-service/internal/domain"
 	"net/http"
@@ -82,7 +83,7 @@ func (c *UserClient) GetProfile(ctx context.Context, userID string) (domain.User
 
 	if resp.StatusCode == http.StatusNotFound {
 		if strings.TrimSpace(body.Message) != "" {
-			return domain.UserProfile{}, fmt.Errorf(body.Message)
+			return domain.UserProfile{}, errors.New(body.Message)
 		}
 
 		return domain.UserProfile{}, fmt.Errorf("user %s does not exist", userID)
@@ -90,7 +91,7 @@ func (c *UserClient) GetProfile(ctx context.Context, userID string) (domain.User
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		if strings.TrimSpace(body.Message) != "" {
-			return domain.UserProfile{}, fmt.Errorf("user-service error: %s", body.Message)
+			return domain.UserProfile{}, errors.New(body.Message)
 		}
 
 		return domain.UserProfile{}, fmt.Errorf("user-service returned status %d", resp.StatusCode)

@@ -2,6 +2,7 @@ package httpdelivery
 
 import (
 	"encoding/json"
+	"errors"
 	"friendship-service/internal/domain"
 	"net/http"
 	"strings"
@@ -272,7 +273,7 @@ func (h *FriendshipHandler) GetStatus(w http.ResponseWriter, r *http.Request) {
 
 func readFriendshipActionRequest(r *http.Request) (domain.FriendshipActionRequest, error) {
 	var req domain.FriendshipActionRequest
-
+	var errFriendIDRequired = errors.New("friend_id không được trống")
 	contentType := r.Header.Get("Content-Type")
 
 	if strings.Contains(contentType, "application/json") {
@@ -286,7 +287,7 @@ func readFriendshipActionRequest(r *http.Request) (domain.FriendshipActionReques
 	req.FriendID = strings.TrimSpace(req.FriendID)
 
 	if req.FriendID == "" {
-		return req, http.ErrMissingFile
+		return req, errFriendIDRequired
 	}
 
 	return req, nil

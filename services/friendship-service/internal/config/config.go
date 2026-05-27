@@ -59,6 +59,9 @@ func Load() (Config, error) {
 	if cfg.UserServiceRequired && cfg.UserServiceBaseURL == "" {
 		return cfg, errors.New("USER_SERVICE_BASE_URL is required when USER_SERVICE_REQUIRED=true")
 	}
+	if cfg.RabbitMQRequired && cfg.RabbitMQURL == "" {
+		return cfg, errors.New("RABBITMQ_URL is required when RABBITMQ_REQUIRED=true")
+	}
 
 	return cfg, nil
 }

@@ -15,6 +15,13 @@ const (
 	StatusBlockedMe       = "BLOCKED_ME"
 )
 
+const (
+	OutboxStatusPending    = "PENDING"
+	OutboxStatusProcessing = "PROCESSING"
+	OutboxStatusPublished  = "PUBLISHED"
+	OutboxStatusFailed     = "FAILED"
+)
+
 type FriendshipActionRequest struct {
 	FriendID string `json:"friend_id"`
 }
@@ -52,19 +59,32 @@ type FriendRequestAcceptedIntegrationEvent struct {
 	Timestamp       time.Time `json:"timestamp"`
 }
 
+type OutboxEvent struct {
+	ID       string
+	Exchange string
+	Payload  []byte
+}
+
 type FriendshipRepository interface {
 	EnsureSchema(ctx context.Context) error
-	SendRequest(ctx context.Context, userID, friendID string) error
-	AcceptRequest(ctx context.Context, userID, friendID string) error
+
+	CreateFriendRequestWithOutbox(ctx context.Context, userID, friendID string, event FriendRequestSentIntegrationEvent) error
+	AcceptFriendRequestWithOutbox(ctx context.Context, userID, friendID string, event FriendRequestAcceptedIntegrationEvent) error
+
 	RejectRequest(ctx context.Context, userID, friendID string) error
 	CancelRequest(ctx context.Context, userID, friendID string) error
 	RemoveFriend(ctx context.Context, userID, friendID string) error
 	BlockUser(ctx context.Context, userID, friendID string) error
 	UnblockUser(ctx context.Context, userID, friendID string) error
+
 	GetFriends(ctx context.Context, userID string) ([]string, error)
 	GetIncomingRequests(ctx context.Context, userID string) ([]string, error)
 	GetOutgoingRequests(ctx context.Context, userID string) ([]string, error)
 	GetRelationshipStatus(ctx context.Context, userID, friendID string) (string, error)
+
+	FetchOutboxEvents(ctx context.Context, limit int) ([]OutboxEvent, error)
+	MarkOutboxPublished(ctx context.Context, eventID string) error
+	MarkOutboxFailed(ctx context.Context, eventID string, reason string) error
 }
 
 type UserProvider interface {
@@ -72,8 +92,8 @@ type UserProvider interface {
 }
 
 type EventPublisher interface {
-	PublishFriendRequestSent(ctx context.Context, event FriendRequestSentIntegrationEvent) error
-	PublishFriendRequestAccepted(ctx context.Context, event FriendRequestAcceptedIntegrationEvent) error
+	Publish(ctx context.Context, exchange string, payload []byte) error
+	Close() error
 }
 
 type FriendshipUsecase interface {

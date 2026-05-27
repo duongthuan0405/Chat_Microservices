@@ -1,9 +1,6 @@
 package events
 
-import (
-	"context"
-	"friendship-service/internal/domain"
-)
+import "context"
 
 type NoopPublisher struct{}
 
@@ -11,10 +8,10 @@ func NewNoopPublisher() *NoopPublisher {
 	return &NoopPublisher{}
 }
 
-func (p *NoopPublisher) PublishFriendRequestSent(ctx context.Context, event domain.FriendRequestSentIntegrationEvent) error {
+func (p *NoopPublisher) Publish(ctx context.Context, exchange string, payload []byte) error {
 	return nil
 }
 
-func (p *NoopPublisher) PublishFriendRequestAccepted(ctx context.Context, event domain.FriendRequestAcceptedIntegrationEvent) error {
+func (p *NoopPublisher) Close() error {
 	return nil
 }

@@ -15,12 +15,14 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"github.com/neo4j/neo4j-go-driver/v5/neo4j"
 )
 
 func main() {
-	ctx := context.Background()
+	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	defer stop()
 
 	cfg, err := config.Load()
 	if err != nil {
@@ -53,6 +55,14 @@ func main() {
 	)
 
 	var eventPublisher domain.EventPublisher
+	outboxWorker := events.NewOutboxWorker(
+		friendshipRepo,
+		eventPublisher,
+		3*time.Second,
+		20,
+	)
+
+	go outboxWorker.Start(ctx)
 
 	if cfg.RabbitMQURL == "" {
 		if cfg.RabbitMQRequired {
@@ -64,8 +74,10 @@ func main() {
 	} else {
 		rabbitPublisher, err := events.NewRabbitMQPublisher(
 			cfg.RabbitMQURL,
-			cfg.FriendRequestSentExchange,
-			cfg.FriendRequestAcceptedExchange,
+			[]string{
+				cfg.FriendRequestSentExchange,
+				cfg.FriendRequestAcceptedExchange,
+			},
 		)
 		if err != nil {
 			log.Fatalf("rabbitmq publisher error: %v", err)
@@ -78,7 +90,6 @@ func main() {
 	friendshipUsecase := usecase.NewFriendshipUsecase(
 		friendshipRepo,
 		userClient,
-		eventPublisher,
 	)
 
 	httpServer := server.New(cfg.Address(), friendshipUsecase)
