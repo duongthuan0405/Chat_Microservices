@@ -96,12 +96,9 @@ jobs:
               --docker-password='${{ secrets.AZURE_ACR_PASSWORD }}' \
               --dry-run=client -o yaml | kubectl apply -f -
 
-            # Clone/Pull latest manifests (assuming /tmp/deploy-manifests is a git clone)
-            if [ -d "/tmp/deploy-manifests/.git" ]; then
-              cd /tmp/deploy-manifests && git pull origin main
-            else
-              git clone https://github.com/duongthuan0405/Chat_Microservices.git /tmp/deploy-manifests
-            fi
+            # Clean up old manifests and pull fresh code
+            rm -rf /tmp/deploy-manifests
+            git clone https://github.com/duongthuan0405/Chat_Microservices.git /tmp/deploy-manifests
 
             # Create/update app secrets securely
             kubectl create secret generic chat-service-secret \
