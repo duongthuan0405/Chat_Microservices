@@ -23,16 +23,16 @@ func NewFriendshipHandler(usecase domain.FriendshipUsecase) *FriendshipHandler {
 func (h *FriendshipHandler) RegisterRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("/health", h.Health)
 
-	mux.Handle("/friendships", WithCurrentUser(http.HandlerFunc(h.Friendships)))
-	mux.Handle("/friendships/request", WithCurrentUser(http.HandlerFunc(h.RequestFriend)))
-	mux.Handle("/friendships/accept", WithCurrentUser(http.HandlerFunc(h.AcceptFriend)))
-	mux.Handle("/friendships/reject", WithCurrentUser(http.HandlerFunc(h.RejectFriend)))
-	mux.Handle("/friendships/cancel", WithCurrentUser(http.HandlerFunc(h.CancelFriendRequest)))
-	mux.Handle("/friendships/block", WithCurrentUser(http.HandlerFunc(h.BlockUser)))
-	mux.Handle("/friendships/unblock", WithCurrentUser(http.HandlerFunc(h.UnblockUser)))
-	mux.Handle("/friendships/status", WithCurrentUser(http.HandlerFunc(h.GetStatus)))
-	mux.Handle("/friendships/requests/incoming", WithCurrentUser(http.HandlerFunc(h.ListIncomingRequests)))
-	mux.Handle("/friendships/requests/outgoing", WithCurrentUser(http.HandlerFunc(h.ListOutgoingRequests)))
+	mux.Handle("/api/friendships", WithCurrentUser(http.HandlerFunc(h.Friendships)))
+	mux.Handle("/api/friendships/request", WithCurrentUser(http.HandlerFunc(h.RequestFriend)))
+	mux.Handle("/api/friendships/accept", WithCurrentUser(http.HandlerFunc(h.AcceptFriend)))
+	mux.Handle("/api/friendships/reject", WithCurrentUser(http.HandlerFunc(h.RejectFriend)))
+	mux.Handle("/api/friendships/cancel", WithCurrentUser(http.HandlerFunc(h.CancelFriendRequest)))
+	mux.Handle("/api/friendships/block", WithCurrentUser(http.HandlerFunc(h.BlockUser)))
+	mux.Handle("/api/friendships/unblock", WithCurrentUser(http.HandlerFunc(h.UnblockUser)))
+	mux.Handle("/api/friendships/status", WithCurrentUser(http.HandlerFunc(h.GetStatus)))
+	mux.Handle("/api/friendships/requests/incoming", WithCurrentUser(http.HandlerFunc(h.ListIncomingRequests)))
+	mux.Handle("/api/friendships/requests/outgoing", WithCurrentUser(http.HandlerFunc(h.ListOutgoingRequests)))
 }
 
 func (h *FriendshipHandler) Health(w http.ResponseWriter, r *http.Request) {
