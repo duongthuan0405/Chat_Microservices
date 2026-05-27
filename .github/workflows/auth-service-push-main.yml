@@ -114,10 +114,10 @@ jobs:
               --from-literal=JWT_AUDIENCE='${{ secrets.JWT_AUDIENCE }}' \
               --from-literal=JWT_ISSUER='${{ secrets.JWT_ISSUER }}' \
               --from-literal=JWT_SECRET='${{ secrets.JWT_SECRET }}' \
-              --from-literal=DOCKER_IMAGE='${{ secrets.AZURE_ACR_LOGIN_SERVER }}/${{ secrets.DOCKER_IMAGE }}:latest' \
               --dry-run=client -o yaml | kubectl apply -f -
 
-            
+            # Replace image tag in deployment manifest
+            sed -i "s|image: .*$|image: ${{ secrets.AZURE_ACR_LOGIN_SERVER }}/${{ secrets.DOCKER_IMAGE }}:latest|g" /tmp/deploy-manifests/k8s/deployments/auth-service/auth-service-deployment.yaml
 
             # Apply Service and Deployment manifests copied to VPS
             kubectl apply -f /tmp/deploy-manifests/k8s/deployments/auth-service/auth-service-deployment.yaml
