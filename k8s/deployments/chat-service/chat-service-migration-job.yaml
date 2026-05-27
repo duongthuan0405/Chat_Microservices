@@ -1,26 +1,16 @@
-apiVersion: apps/v1
-kind: Deployment
+apiVersion: batch/v1
+kind: Job
 metadata:
-  name: notification-service
+  name: chat-service-migration-job
   namespace: default
-  labels:
-    app: notification-service
 spec:
-  replicas: 2
-  selector:
-    matchLabels:
-      app: notification-service
   template:
-    metadata:
-      labels:
-        app: notification-service
     spec:
       containers:
-        - name: notification-service
+        - name: chat-service-migration
           image: ${DOCKER_USERNAME}/${DOCKER_IMAGE}
           imagePullPolicy: Always
-          ports:
-            - containerPort: ${APP_CONTAINER_PORT}
+          args: ["--migrate"]
           env:
             - name: ASPNETCORE_ENVIRONMENT
               value: Production
@@ -42,22 +32,5 @@ spec:
               value: "${RABBITMQ_USERNAME}"
             - name: RABBITMQ_PASSWORD
               value: "${RABBITMQ_PASSWORD}"
-          resources:
-            limits:
-              cpu: "500m"
-              memory: "512Mi"
-            requests:
-              cpu: "250m"
-              memory: "256Mi"
-          readinessProbe:
-            httpGet:
-              path: /ready
-              port: ${APP_CONTAINER_PORT}
-            initialDelaySeconds: 5
-            periodSeconds: 10
-          livenessProbe:
-            httpGet:
-              path: /live
-              port: ${APP_CONTAINER_PORT}
-            initialDelaySeconds: 15
-            periodSeconds: 60
+      restartPolicy: OnFailure
+  backoffLimit: 3
