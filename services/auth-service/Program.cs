@@ -37,7 +37,7 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
-app.MapPost("/auth/register", async (AuthenticationService authService, RegisterRequest request) =>
+app.MapPost("/api/auth/register", async (AuthenticationService authService, RegisterRequest request) =>
 {
     try
     {
@@ -54,7 +54,7 @@ app.MapPost("/auth/register", async (AuthenticationService authService, Register
 })
 .WithName("Register");
 
-app.MapPost("/auth/login", async (AuthenticationService authService, LoginRequest request) =>
+app.MapPost("/api/auth/login", async (AuthenticationService authService, LoginRequest request) =>
 {
     try
     {
@@ -71,33 +71,7 @@ app.MapPost("/auth/login", async (AuthenticationService authService, LoginReques
 })
 .WithName("Login");
 
-app.MapPost("/auth/decode", (AuthenticationService authService, HttpRequest httpRequest) =>
-{
-    try
-    {
-        if (!httpRequest.Headers.TryGetValue("Authorization", out var authHeader))
-            return Results.BadRequest(new { message = "Missing Authorization header" });
-
-        var header = authHeader.ToString();
-        const string bearer = "Bearer ";
-        if (!header.StartsWith(bearer, StringComparison.OrdinalIgnoreCase))
-            return Results.BadRequest(new { message = "Authorization header must be 'Bearer <token>'" });
-
-        var token = header[bearer.Length..].Trim();
-        return Results.Ok(authService.DecodeToken(token));
-    }
-    catch (ArgumentException exception)
-    {
-        return Results.BadRequest(new { message = exception.Message });
-    }
-    catch (SecurityTokenException)
-    {
-        return Results.Unauthorized();
-    }
-})
-.WithName("DecodeToken");
-
-app.MapGet("/auth/verify-token", (AuthenticationService authService, HttpRequest httpRequest, HttpResponse httpResponse) =>
+app.MapGet("/api/auth/verify-token", (AuthenticationService authService, HttpRequest httpRequest, HttpResponse httpResponse) =>
 {
     try
     {
@@ -128,7 +102,7 @@ app.MapGet("/auth/verify-token", (AuthenticationService authService, HttpRequest
 })
 .WithName("VerifyToken");
 
-app.MapGet("/profile/{userId}", async (AuthenticationService authService, string userId) =>
+app.MapGet("/api/profile/{userId}", async (AuthenticationService authService, string userId) =>
 {
     try
     {
@@ -145,7 +119,7 @@ app.MapGet("/profile/{userId}", async (AuthenticationService authService, string
 })
 .WithName("GetProfile");
 
-app.MapPut("/profile/{userId}", async (AuthenticationService authService, string userId, UpdateProfileRequest request) =>
+app.MapPut("/api/profile/{userId}", async (AuthenticationService authService, string userId, UpdateProfileRequest request) =>
 {
     try
     {
