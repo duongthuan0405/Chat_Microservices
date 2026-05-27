@@ -24,6 +24,15 @@ spec:
             port:
               number: 80
 
+      # Grafana Dashboard (Không cần auth token)
+      - path: /grafana
+        pathType: Prefix
+        backend:
+          service:
+            name: grafana-service
+            port:
+              number: 80
+
 # 2. PRIVATE INGRESS (Bắt buộc xác thực)
 # Dành cho các Service yêu cầu đăng nhập
 apiVersion: networking.k8s.io/v1
@@ -90,5 +99,23 @@ spec:
         backend:
           service:
             name: notification-service
+            port:
+              number: 80
+
+      # Conversation Service (REST API)
+      - path: /conversations
+        pathType: Prefix
+        backend:
+          service:
+            name: conversation-service
+            port:
+              number: 80
+
+      # Friendship Service (REST API)
+      - path: /friendships
+        pathType: Prefix
+        backend:
+          service:
+            name: friendship-service
             port:
               number: 80
