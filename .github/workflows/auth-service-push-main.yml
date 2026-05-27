@@ -57,7 +57,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ${{ secrets.AZURE_ACR_LOGIN_SERVER }}/auth-service
+          images: ${{ secrets.AZURE_ACR_LOGIN_SERVER }}/${{ secrets.DOCKER_IMAGE }}
           tags: |
             type=sha,format=long
             type=raw,value=latest

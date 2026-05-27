@@ -1,7 +1,5 @@
-# ==========================================
 # 1. PUBLIC INGRESS (Không cần xác thực)
 # Dành cho các endpoint Login, Register của Auth Service
-# ==========================================
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
@@ -17,6 +15,7 @@ spec:
   rules:
   - http:
       paths:
+      # Auth Service (Login, Register...)
       - path: /api/auth
         pathType: Prefix
         backend:
@@ -25,11 +24,17 @@ spec:
             port:
               number: 80
 
----
-# ==========================================
+      # Grafana Dashboard (Không cần auth token)
+      - path: /grafana
+        pathType: Prefix
+        backend:
+          service:
+            name: grafana-service
+            port:
+              number: 80
+
 # 2. PRIVATE INGRESS (Bắt buộc xác thực)
 # Dành cho các Service yêu cầu đăng nhập
-# ==========================================
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
@@ -47,48 +52,23 @@ metadata:
     nginx.ingress.kubernetes.io/cors-allow-origin: "*"
     nginx.ingress.kubernetes.io/cors-allow-methods: "GET, PUT, POST, DELETE, PATCH, OPTIONS"
     nginx.ingress.kubernetes.io/cors-allow-headers: "DNT,Keep-Alive,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Range,Authorization"
-    
-    # ---------------------------------------------------
-    # CẤU HÌNH AUTHENTICATION OFFLOADING (ỦY QUYỀN XÁC THỰC)
-    # ---------------------------------------------------
-    # Trỏ đến endpoint xác thực nội bộ của Auth Service
-    nginx.ingress.kubernetes.io/auth-url: "http://auth-service.default.svc.cluster.local/api/auth/verify"
-    
-    # Lấy các Header này từ Auth Service để tiêm vào các Service phía sau
-    nginx.ingress.kubernetes.io/auth-response-headers: "X-User-Id, X-User-Role"
+
+    # CẤU HÌNH AUTHENTICATION OFFLOADING
+    nginx.ingress.kubernetes.io/auth-url: "http://auth-service.default.svc.cluster.local/api/auth/verify-token"
+    nginx.ingress.kubernetes.io/auth-response-headers: "X-User-Id, X-User-Email"
     
 spec:
   rules:
   - http:
       paths:
-      # User Service
-      - path: /api/users
-        pathType: Prefix
-        backend:
-          service:
-            name: user-service
-            port:
-              number: 80
-
-      # Friendship Service
-      - path: /api/friendships
-        pathType: Prefix
-        backend:
-          service:
-            name: friendship-service
-            port:
-              number: 80
-
-      # Group Service
-      - path: /api/groups
-        pathType: Prefix
-        backend:
-          service:
-            name: group-service
-            port:
-              number: 80
-
       # Chat Service (REST API + SignalR)
+      - path: /api/messages
+        pathType: Prefix
+        backend:
+          service:
+            name: chat-service
+            port:
+              number: 80
       - path: /api/chat
         pathType: Prefix
         backend:
@@ -104,18 +84,38 @@ spec:
             port:
               number: 80
 
-      # Notification Service (REST API + SignalR)
-      - path: /api/notifications
+      # Auth Service (Profile)
+      - path: /api/profile
+        pathType: Prefix
+        backend:
+          service:
+            name: auth-service
+            port:
+              number: 80
+
+      # Notification Service (SignalR)
+      - path: /hubs/notification
         pathType: Prefix
         backend:
           service:
             name: notification-service
             port:
               number: 80
-      - path: /hubs/notification
+
+      # Conversation Service (REST API)
+      - path: /conversations
         pathType: Prefix
         backend:
           service:
-            name: notification-service
+            name: conversation-service
+            port:
+              number: 80
+
+      # Friendship Service (REST API)
+      - path: /friendships
+        pathType: Prefix
+        backend:
+          service:
+            name: friendship-service
             port:
               number: 80
