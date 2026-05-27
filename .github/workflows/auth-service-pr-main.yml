@@ -1,0 +1,45 @@
+name: Auth Service - Pull Request to main CI
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'services/auth-service/**'
+      - '.github/workflows/auth-service-pr-main.yml'
+
+jobs:
+  build:
+    name: Build and Verify
+    runs-on: ubuntu-latest
+    defaults: 
+      run: 
+        working-directory: ./services/auth-service/AuthService/
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Log information
+        run: |
+          echo "Pull Request #${{ github.event.number }} opened by ${{ github.event.pull_request.user.login }}"
+          echo "Source branch: ${{ github.head_ref }}"
+          echo "Target branch: ${{ github.base_ref }}"
+
+      - name: Setup .NET SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '9.0.x'
+          cache: true
+          cache-dependency-path: services/auth-service/AuthService/AuthService.csproj
+
+      - name: Restore NuGet Packages
+        run: dotnet restore
+
+      - name: Build Project
+        run: dotnet build
+
+      - name: Run Tests
+        run: echo "Test if have some test cases"
+
+      
