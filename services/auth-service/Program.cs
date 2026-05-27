@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using System.IO;
 using System.Linq;
+using System.Text.Json;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.AspNetCore.Http;
 using AuthService.Data;
@@ -95,6 +96,37 @@ app.MapPost("/auth/decode", (AuthenticationService authService, HttpRequest http
     }
 })
 .WithName("DecodeToken");
+
+app.MapGet("/auth/verify-token", (AuthenticationService authService, HttpRequest httpRequest, HttpResponse httpResponse) =>
+{
+    try
+    {
+        if (!httpRequest.Headers.TryGetValue("Authorization", out var authHeader))
+            return Results.Unauthorized();
+
+        var header = authHeader.ToString();
+        const string bearer = "Bearer ";
+        if (!header.StartsWith(bearer, StringComparison.OrdinalIgnoreCase))
+            return Results.Unauthorized();
+
+        var token = header[bearer.Length..].Trim();
+        var claims = authService.DecodeToken(token);
+
+        httpResponse.Headers["X-User-Id"] = claims.Id;
+        httpResponse.Headers["X-User-Email"] = claims.Email;
+
+        return Results.Empty;
+    }
+    catch (ArgumentException)
+    {
+        return Results.Unauthorized();
+    }
+    catch (SecurityTokenException)
+    {
+        return Results.Unauthorized();
+    }
+})
+.WithName("VerifyToken");
 
 app.MapGet("/profile/{userId}", async (AuthenticationService authService, string userId) =>
 {
