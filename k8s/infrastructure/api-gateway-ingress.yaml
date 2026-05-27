@@ -33,6 +33,9 @@ spec:
             port:
               number: 80
 
+---
+
+
 # 2. PRIVATE INGRESS (Bắt buộc xác thực)
 # Dành cho các Service yêu cầu đăng nhập
 apiVersion: networking.k8s.io/v1
