@@ -12,7 +12,6 @@ import (
 	"friendship-service/internal/usecase"
 	"log"
 	"net/http"
-	"os"
 	"os/signal"
 	"syscall"
 	"time"
@@ -21,7 +20,7 @@ import (
 )
 
 func main() {
-	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	appCtx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
 
 	cfg, err := config.Load()
@@ -36,15 +35,22 @@ func main() {
 	if err != nil {
 		log.Fatalf("neo4j driver error: %v", err)
 	}
-	defer driver.Close(ctx)
+	defer func() {
+		closeCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
 
-	if err := driver.VerifyConnectivity(ctx); err != nil {
+		if err := driver.Close(closeCtx); err != nil {
+			log.Printf("neo4j close error: %v", err)
+		}
+	}()
+
+	if err := driver.VerifyConnectivity(appCtx); err != nil {
 		log.Fatalf("neo4j connectivity error: %v", err)
 	}
 
 	friendshipRepo := repository.NewNeo4jRepository(driver)
 
-	if err := friendshipRepo.EnsureSchema(ctx); err != nil {
+	if err := friendshipRepo.EnsureSchema(appCtx); err != nil {
 		log.Fatalf("neo4j schema error: %v", err)
 	}
 
@@ -54,7 +60,16 @@ func main() {
 		cfg.ExternalRequestTimeout,
 	)
 
-	var eventPublisher domain.EventPublisher
+	eventPublisher, err := createEventPublisher(cfg)
+	if err != nil {
+		log.Fatalf("event publisher error: %v", err)
+	}
+	defer func() {
+		if err := eventPublisher.Close(); err != nil {
+			log.Printf("event publisher close error: %v", err)
+		}
+	}()
+
 	outboxWorker := events.NewOutboxWorker(
 		friendshipRepo,
 		eventPublisher,
@@ -62,30 +77,7 @@ func main() {
 		20,
 	)
 
-	go outboxWorker.Start(ctx)
-
-	if cfg.RabbitMQURL == "" {
-		if cfg.RabbitMQRequired {
-			log.Fatal("RABBITMQ_URL is required when RABBITMQ_REQUIRED=true")
-		}
-
-		eventPublisher = events.NewNoopPublisher()
-		log.Println("RabbitMQ is disabled, using noop publisher")
-	} else {
-		rabbitPublisher, err := events.NewRabbitMQPublisher(
-			cfg.RabbitMQURL,
-			[]string{
-				cfg.FriendRequestSentExchange,
-				cfg.FriendRequestAcceptedExchange,
-			},
-		)
-		if err != nil {
-			log.Fatalf("rabbitmq publisher error: %v", err)
-		}
-		defer rabbitPublisher.Close()
-
-		eventPublisher = rabbitPublisher
-	}
+	go outboxWorker.Start(appCtx)
 
 	friendshipUsecase := usecase.NewFriendshipUsecase(
 		friendshipRepo,
@@ -101,16 +93,13 @@ func main() {
 		serverError <- httpServer.Run()
 	}()
 
-	shutdownSignal := make(chan os.Signal, 1)
-	signal.Notify(shutdownSignal, syscall.SIGINT, syscall.SIGTERM)
-
 	select {
 	case err := <-serverError:
 		if err != nil && !errors.Is(err, http.ErrServerClosed) {
 			log.Fatalf("server error: %v", err)
 		}
-	case sig := <-shutdownSignal:
-		log.Printf("received signal: %s", sig.String())
+	case <-appCtx.Done():
+		log.Println("shutdown signal received")
 
 		shutdownCtx, cancel := context.WithTimeout(context.Background(), cfg.ShutdownTimeout)
 		defer cancel()
@@ -121,4 +110,23 @@ func main() {
 
 		log.Println("friendship-service stopped")
 	}
+}
+
+func createEventPublisher(cfg config.Config) (domain.EventPublisher, error) {
+	if cfg.RabbitMQURL == "" {
+		if cfg.RabbitMQRequired {
+			return nil, errors.New("RABBITMQ_URL is required when RABBITMQ_REQUIRED=true")
+		}
+
+		log.Println("RabbitMQ is disabled, using noop publisher")
+		return events.NewNoopPublisher(), nil
+	}
+
+	return events.NewRabbitMQPublisher(
+		cfg.RabbitMQURL,
+		[]string{
+			cfg.FriendRequestSentExchange,
+			cfg.FriendRequestAcceptedExchange,
+		},
+	)
 }
