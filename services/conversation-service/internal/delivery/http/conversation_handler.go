@@ -19,7 +19,7 @@ func NewConversationHandler(usecase domain.ConversationUsecase) *ConversationHan
 }
 
 func (h *ConversationHandler) RegisterRoutes(r chi.Router) {
-	r.Route("/conversations", func(r chi.Router) {
+	r.Route("/api/conversations", func(r chi.Router) {
 		r.Use(WithCurrentUser)
 
 		r.Post("/direct", h.CreateDirectConversation)
