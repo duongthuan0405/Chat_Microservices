@@ -117,11 +117,7 @@ jobs:
               --dry-run=client -o yaml | kubectl apply -f -
 
             # Apply Service and Deployment manifests copied to VPS
-            kubectl apply -f /tmp/deploy-manifests/k8s/deployments/auth-service/auth-service-deployment.yaml
-            kubectl apply -f /tmp/deploy-manifests/k8s/deployments/auth-service/auth-service-service.yaml
-            kubectl apply -f /tmp/deploy-manifests/k8s/deployments/auth-service/auth-service-secret.yaml
-
 
             # Show status
-            kubectl rollout status deployment/auth-service -n default || true
-            kubectl get pods -l app=auth-service -n default
+            # kubectl rollout status deployment/auth-service -n default || true
+            # kubectl get pods -l app=auth-service -n default
