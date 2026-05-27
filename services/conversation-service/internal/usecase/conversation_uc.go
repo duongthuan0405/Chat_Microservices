@@ -3,7 +3,6 @@ package usecase
 import (
 	"context"
 	"conversation-service/internal/domain"
-	"conversation-service/internal/repository"
 	"errors"
 	"strings"
 
@@ -45,7 +44,7 @@ func (uc *conversationUsecase) CreateDirectConversation(ctx context.Context, cur
 		return domain.Conversation{}, err
 	}
 
-	directKey := repository.MakeDirectKey(currentID, targetID)
+	directKey := domain.MakeDirectKey(currentID, targetID)
 
 	return uc.repo.CreateDirectConversation(ctx, currentID, targetID, directKey)
 }

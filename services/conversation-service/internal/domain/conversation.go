@@ -2,6 +2,8 @@ package domain
 
 import (
 	"context"
+	"sort"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -125,4 +127,10 @@ type ConversationUsecase interface {
 
 	IsMember(ctx context.Context, conversationID string, userID string) (bool, error)
 	GetMemberIDs(ctx context.Context, conversationID string) ([]string, error)
+}
+
+func MakeDirectKey(a uuid.UUID, b uuid.UUID) string {
+	ids := []string{a.String(), b.String()}
+	sort.Strings(ids)
+	return strings.Join(ids, ":")
 }

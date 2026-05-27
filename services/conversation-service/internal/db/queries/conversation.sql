@@ -126,3 +126,10 @@ SET role = $3,
 WHERE conversation_id = $1
   AND user_id = $2
   AND status = 'ACTIVE';
+
+  -- name: GetConversationMembers :many
+SELECT id, conversation_id, user_id, role, status, joined_at, created_at, updated_at
+FROM conversation_members
+WHERE conversation_id = $1
+  AND status = 'ACTIVE'
+ORDER BY joined_at ASC;
