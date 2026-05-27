@@ -18,7 +18,11 @@ spec:
       - name: acr-secret
       containers:
         - name: auth-service
-          image: ${{ secrets.AZURE_ACR_LOGIN_SERVER }}/auth-service:latest
+          image:
+            valueFrom:
+              secretKeyRef:
+                name: acr-secret
+                key: DOCKER_IMAGE
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 8080
