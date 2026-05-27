@@ -90,8 +90,9 @@ jobs:
           key: ${{ secrets.VPS_SSH_KEY }}
           port: ${{ secrets.VPS_SSH_PORT || '22' }}
           source: |
-            deploy-manifests/auth-service-deployment.yaml
-            deploy-manifests/auth-service-service.yaml
+            k8s/deployments/auth-service/auth-service-deployment.yaml
+            k8s/deployments/auth-service/auth-service-service.yaml
+            k8s/deployments/auth-service/auth-service-secret.yaml
           target: /tmp/deploy-manifests/
       
       - name: SSH into vps
@@ -129,6 +130,7 @@ jobs:
             # Apply Service and Deployment manifests copied to VPS
             kubectl apply -f /tmp/deploy-manifests/auth-service-service.yaml
             kubectl apply -f /tmp/deploy-manifests/auth-service-deployment.yaml
+            kubectl apply -f /tmp/deploy-manifests/auth-service-secret.yaml
 
             # Show status
             kubectl rollout status deployment/auth-service -n default || true
