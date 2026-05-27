@@ -23,3 +23,13 @@ jobs:
 
       - name: Say hello
         run: echo "Deploying API Gateway Ingress to Kubernetes Cluster"
+
+      - name: SSH into vps
+        uses: appleboy/ssh-action@v0.1.7
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USERNAME }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          script: |
+            echo "Connected to VPS. Deploying Ingress..."
+            kubectl apply -f k8s/infrastructure/api-gateway-ingress.yaml
