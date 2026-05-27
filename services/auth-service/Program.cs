@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using System.IO;
+using System.Linq;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.AspNetCore.Http;
 using AuthService.Data;
@@ -129,9 +130,10 @@ app.MapPut("/profile/{userId}", async (AuthenticationService authService, string
 })
 .WithName("UpdateProfile");
 
-// Ensure database is created/migrated on startup
-using (var scope = app.Services.CreateScope())
+// Ensure database is created/migrated on startup only when requested
+if (args != null && args.Contains("--migrate"))
 {
+    using var scope = app.Services.CreateScope();
     var db = scope.ServiceProvider.GetRequiredService<AuthService.Data.AuthDbContext>();
     db.Database.Migrate();
 }
