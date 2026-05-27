@@ -3,21 +3,31 @@ package usecase
 import (
 	"context"
 	"conversation-service/internal/domain"
+	"encoding/json"
 	"errors"
 	"strings"
+	"time"
 
 	"github.com/google/uuid"
 )
 
 type conversationUsecase struct {
-	repo         domain.ConversationRepository
-	userProvider domain.UserProvider
+	repo                      domain.ConversationRepository
+	userProvider              domain.UserProvider
+	eventPublisher            domain.EventPublisher
+	addedToGroupChatExchange  string
 }
-
-func NewConversationUsecase(repo domain.ConversationRepository, userProvider domain.UserProvider) domain.ConversationUsecase {
+func NewConversationUsecase(
+	repo domain.ConversationRepository,
+	userProvider domain.UserProvider,
+	eventPublisher domain.EventPublisher,
+	addedToGroupChatExchange string,
+) domain.ConversationUsecase {
 	return &conversationUsecase{
-		repo:         repo,
-		userProvider: userProvider,
+		repo:                     repo,
+		userProvider:             userProvider,
+		eventPublisher:           eventPublisher,
+		addedToGroupChatExchange: addedToGroupChatExchange,
 	}
 }
 
@@ -60,7 +70,8 @@ func (uc *conversationUsecase) CreateGroupConversation(ctx context.Context, curr
 		return domain.Conversation{}, errors.New("group name không được trống")
 	}
 
-	if _, err := uc.userProvider.GetProfile(ctx, currentID.String()); err != nil {
+	creatorProfile, err := uc.userProvider.GetProfile(ctx, currentID.String())
+	if err != nil {
 		return domain.Conversation{}, err
 	}
 
@@ -89,7 +100,18 @@ func (uc *conversationUsecase) CreateGroupConversation(ctx context.Context, curr
 		avatarURL = &trimmedAvatarURL
 	}
 
-	return uc.repo.CreateGroupConversation(ctx, currentID, name, avatarURL, memberIDs)
+	conversation, err := uc.repo.CreateGroupConversation(ctx, currentID, name, avatarURL, memberIDs)
+	if err != nil {
+		return domain.Conversation{}, err
+	}
+
+	for _, memberID := range memberIDs {
+		if err := uc.publishAddedToGroupChatEvent(ctx, conversation.ID.String(), name, creatorProfile.ID, creatorProfile.Name, memberID.String()); err != nil {
+			return domain.Conversation{}, err
+		}
+	}
+
+	return conversation, nil
 }
 
 func (uc *conversationUsecase) GetConversationDetail(ctx context.Context, currentUserID string, conversationID string) (domain.ConversationWithMembers, error) {
@@ -153,6 +175,15 @@ func (uc *conversationUsecase) AddMember(ctx context.Context, currentUserID stri
 		return err
 	}
 
+	conversation, err := uc.repo.GetConversationByID(ctx, convID)
+	if err != nil {
+		return err
+	}
+
+	if conversation.Type != domain.ConversationTypeGroup {
+		return errors.New("chỉ group conversation mới được thêm thành viên")
+	}
+
 	currentMember, err := uc.repo.GetMember(ctx, convID, currentID)
 	if err != nil {
 		return err
@@ -162,11 +193,32 @@ func (uc *conversationUsecase) AddMember(ctx context.Context, currentUserID stri
 		return errors.New("forbidden")
 	}
 
+	adderProfile, err := uc.userProvider.GetProfile(ctx, currentID.String())
+	if err != nil {
+		return err
+	}
+
 	if _, err := uc.userProvider.GetProfile(ctx, targetID.String()); err != nil {
 		return err
 	}
 
-	return uc.repo.AddMember(ctx, convID, targetID, domain.MemberRoleMember)
+	if err := uc.repo.AddMember(ctx, convID, targetID, domain.MemberRoleMember); err != nil {
+		return err
+	}
+
+	groupName := ""
+	if conversation.Name != nil {
+		groupName = strings.TrimSpace(*conversation.Name)
+	}
+
+	return uc.publishAddedToGroupChatEvent(
+		ctx,
+		conversation.ID.String(),
+		groupName,
+		adderProfile.ID,
+		adderProfile.Name,
+		targetID.String(),
+	)
 }
 
 func (uc *conversationUsecase) RemoveMember(ctx context.Context, currentUserID string, conversationID string, targetUserID string) error {
@@ -320,4 +372,33 @@ func parseUUID(value string, fieldName string) (uuid.UUID, error) {
 
 func canManageMembers(role string) bool {
 	return role == domain.MemberRoleOwner || role == domain.MemberRoleAdmin
+}
+
+func (uc *conversationUsecase) publishAddedToGroupChatEvent(
+	ctx context.Context,
+	groupID string,
+	groupName string,
+	adderID string,
+	adderName string,
+	addedUserID string,
+) error {
+	if uc.eventPublisher == nil {
+		return nil
+	}
+
+	event := domain.AddedToGroupChatIntegrationEvent{
+		GroupID:     groupID,
+		GroupName:   groupName,
+		AdderID:     adderID,
+		AdderName:   adderName,
+		AddedUserID: addedUserID,
+		Timestamp:   time.Now().UTC(),
+	}
+
+	payload, err := json.Marshal(event)
+	if err != nil {
+		return err
+	}
+
+	return uc.eventPublisher.Publish(ctx, uc.addedToGroupChatExchange, payload)
 }
