@@ -5,6 +5,7 @@ import (
 	"conversation-service/internal/client"
 	"conversation-service/internal/config"
 	"conversation-service/internal/database"
+	"conversation-service/internal/domain"
 	"conversation-service/internal/events"
 	"conversation-service/internal/repository"
 	"conversation-service/internal/server"

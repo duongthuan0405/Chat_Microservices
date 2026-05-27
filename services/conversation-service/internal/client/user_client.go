@@ -42,14 +42,10 @@ func (c *UserClient) GetProfile(ctx context.Context, userID string) (domain.User
 	userID = strings.TrimSpace(userID)
 
 	if userID == "" {
-		return domain.UserProfile{}, errors.New("user id is required")
+		return domain.UserProfile{}, fmt.Errorf("user id is required")
 	}
 
-	if c.baseURL == "" {
-		if c.required {
-			return domain.UserProfile{}, errors.New("user-service is required but USER_SERVICE_BASE_URL is empty")
-		}
-
+	if !c.required {
 		return domain.UserProfile{
 			ID:          userID,
 			Email:       "",
@@ -58,6 +54,10 @@ func (c *UserClient) GetProfile(ctx context.Context, userID string) (domain.User
 			AvatarURL:   "",
 			Gender:      "",
 		}, nil
+	}
+
+	if c.baseURL == "" {
+		return domain.UserProfile{}, fmt.Errorf("user-service is required but USER_SERVICE_BASE_URL is empty")
 	}
 
 	endpoint := fmt.Sprintf("%s/api/profile/%s", c.baseURL, url.PathEscape(userID))
