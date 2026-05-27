@@ -90,9 +90,9 @@ jobs:
           key: ${{ secrets.VPS_SSH_KEY }}
           port: ${{ secrets.VPS_SSH_PORT || '22' }}
           source: |
-            k8s/deployments/auth-service/auth-service-deployment.yaml
-            k8s/deployments/auth-service/auth-service-service.yaml
-            k8s/deployments/auth-service/auth-service-secret.yaml
+            /k8s/deployments/auth-service/auth-service-deployment.yaml
+            /k8s/deployments/auth-service/auth-service-service.yaml
+            /k8s/deployments/auth-service/auth-service-secret.yaml
           target: /tmp/deploy-manifests/
       
       - name: SSH into vps
