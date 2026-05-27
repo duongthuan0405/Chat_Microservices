@@ -16,8 +16,8 @@ FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime
 WORKDIR /app
 
 # listen on port 5073 by default
-ENV ASPNETCORE_URLS=http://+:5073
-EXPOSE 5073
+
+EXPOSE 8080
 
 COPY --from=build /app/publish .
 
