@@ -21,7 +21,7 @@ spec:
           image:
             valueFrom:
               secretKeyRef:
-                name: acr-secret
+                name: auth-service-secret
                 key: DOCKER_IMAGE
           imagePullPolicy: IfNotPresent
           ports:
