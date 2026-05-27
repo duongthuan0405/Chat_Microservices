@@ -1,0 +1,50 @@
+@auth_service_HostAddress = http://localhost:5073
+
+### Register a new user
+POST {{auth_service_HostAddress}}/auth/register
+Content-Type: application/json
+
+{
+  "email": "user@example.com",
+  "password": "SecurePassword123!"
+}
+
+###
+
+### Login with registered user
+POST {{auth_service_HostAddress}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "user@example.com",
+  "password": "SecurePassword123!"
+}
+
+###
+
+### Decode JWT token (replace TOKEN with the token from login response)
+POST {{auth_service_HostAddress}}/auth/decode
+Content-Type: application/json
+
+{
+  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+}
+
+###
+
+### Get user profile by ID
+GET {{auth_service_HostAddress}}/profile/550e8400-e29b-41d4-a716-446655440000
+Content-Type: application/json
+
+###
+
+### Update user profile
+PUT {{auth_service_HostAddress}}/profile/550e8400-e29b-41d4-a716-446655440000
+Content-Type: application/json
+
+{
+  "name": "John Doe",
+  "phoneNumber": "+1234567890",
+  "avatarUrl": "https://example.com/avatar.jpg",
+  "gender": "Male"
+}
