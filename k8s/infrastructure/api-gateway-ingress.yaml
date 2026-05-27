@@ -1,0 +1,121 @@
+# ==========================================
+# 1. PUBLIC INGRESS (Không cần xác thực)
+# Dành cho các endpoint Login, Register của Auth Service
+# ==========================================
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: api-gateway-ingress-public
+  namespace: default
+  annotations:
+    kubernetes.io/ingress.class: nginx
+    nginx.ingress.kubernetes.io/enable-cors: "true"
+    nginx.ingress.kubernetes.io/cors-allow-origin: "*"
+    nginx.ingress.kubernetes.io/cors-allow-methods: "GET, PUT, POST, DELETE, PATCH, OPTIONS"
+    nginx.ingress.kubernetes.io/cors-allow-headers: "DNT,Keep-Alive,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Range,Authorization"
+spec:
+  rules:
+  - http:
+      paths:
+      - path: /api/auth
+        pathType: Prefix
+        backend:
+          service:
+            name: auth-service
+            port:
+              number: 80
+
+---
+# ==========================================
+# 2. PRIVATE INGRESS (Bắt buộc xác thực)
+# Dành cho các Service yêu cầu đăng nhập
+# ==========================================
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: api-gateway-ingress-private
+  namespace: default
+  annotations:
+    kubernetes.io/ingress.class: nginx
+    
+    # Kích hoạt WebSocket (cần cho SignalR)
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
+    
+    # Cấu hình CORS
+    nginx.ingress.kubernetes.io/enable-cors: "true"
+    nginx.ingress.kubernetes.io/cors-allow-origin: "*"
+    nginx.ingress.kubernetes.io/cors-allow-methods: "GET, PUT, POST, DELETE, PATCH, OPTIONS"
+    nginx.ingress.kubernetes.io/cors-allow-headers: "DNT,Keep-Alive,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Range,Authorization"
+    
+    # ---------------------------------------------------
+    # CẤU HÌNH AUTHENTICATION OFFLOADING (ỦY QUYỀN XÁC THỰC)
+    # ---------------------------------------------------
+    # Trỏ đến endpoint xác thực nội bộ của Auth Service
+    nginx.ingress.kubernetes.io/auth-url: "http://auth-service.default.svc.cluster.local/api/auth/verify"
+    
+    # Lấy các Header này từ Auth Service để tiêm vào các Service phía sau
+    nginx.ingress.kubernetes.io/auth-response-headers: "X-User-Id, X-User-Role"
+    
+spec:
+  rules:
+  - http:
+      paths:
+      # User Service
+      - path: /api/users
+        pathType: Prefix
+        backend:
+          service:
+            name: user-service
+            port:
+              number: 80
+
+      # Friendship Service
+      - path: /api/friendships
+        pathType: Prefix
+        backend:
+          service:
+            name: friendship-service
+            port:
+              number: 80
+
+      # Group Service
+      - path: /api/groups
+        pathType: Prefix
+        backend:
+          service:
+            name: group-service
+            port:
+              number: 80
+
+      # Chat Service (REST API + SignalR)
+      - path: /api/chat
+        pathType: Prefix
+        backend:
+          service:
+            name: chat-service
+            port:
+              number: 80
+      - path: /hubs/chat
+        pathType: Prefix
+        backend:
+          service:
+            name: chat-service
+            port:
+              number: 80
+
+      # Notification Service (REST API + SignalR)
+      - path: /api/notifications
+        pathType: Prefix
+        backend:
+          service:
+            name: notification-service
+            port:
+              number: 80
+      - path: /hubs/notification
+        pathType: Prefix
+        backend:
+          service:
+            name: notification-service
+            port:
+              number: 80

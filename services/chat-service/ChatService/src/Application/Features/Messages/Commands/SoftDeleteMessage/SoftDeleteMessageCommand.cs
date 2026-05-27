@@ -1,0 +1,90 @@
+using System;
+using System.Threading;
+using System.Threading.Tasks;
+using MediatR;
+using ChatService.Application.Exceptions;
+using ChatService.Application.ExternalServices;
+using ChatService.Application.Persistence;
+using ChatService.Application.Persistence.Repositories;
+
+namespace ChatService.Application.Features.Messages.Commands.SoftDeleteMessage;
+
+public class SoftDeleteMessageCommand : IRequest<SoftDeleteMessageCommandResponse>
+{
+    public Guid MessageId { get; set; }
+    public Guid SenderId { get; set; }
+}
+
+public class SoftDeleteMessageCommandResponse
+{
+    public Guid Id { get; set; }
+    public Guid ConversationId { get; set; }
+    public bool IsDeleted { get; set; }
+}
+
+public class SoftDeleteMessageCommandHandler : IRequestHandler<SoftDeleteMessageCommand, SoftDeleteMessageCommandResponse>
+{
+    private readonly IMessageRepository _messageRepository;
+    private readonly IMessageReadStatusRepository _messageReadStatusRepository;
+    private readonly IConversationServiceClient _conversationServiceClient;
+    private readonly IMessageHubPublisher _messageHubPublisher;
+    private readonly IUnitOfWork _unitOfWork;
+
+    public SoftDeleteMessageCommandHandler(
+        IMessageRepository messageRepository,
+        IMessageReadStatusRepository messageReadStatusRepository,
+        IConversationServiceClient conversationServiceClient,
+        IMessageHubPublisher messageHubPublisher,
+        IUnitOfWork unitOfWork)
+    {
+        _messageRepository = messageRepository;
+        _messageReadStatusRepository = messageReadStatusRepository;
+        _conversationServiceClient = conversationServiceClient;
+        _messageHubPublisher = messageHubPublisher;
+        _unitOfWork = unitOfWork;
+    }
+
+    public async Task<SoftDeleteMessageCommandResponse> Handle(SoftDeleteMessageCommand request, CancellationToken cancellationToken)
+    {
+        var message = await _messageRepository.GetByIdAsync(request.MessageId, cancellationToken);
+        if (message == null)
+        {
+            throw new NotFoundException($"Message with ID '{request.MessageId}' was not found.");
+        }
+
+        if (message.SenderId != request.SenderId)
+        {
+            throw new ForbiddenException("You do not have permission to delete this message.");
+        }
+
+        try
+        {
+            await _unitOfWork.BeginAsync();
+
+            message.SoftDelete();
+            await _messageRepository.UpdateAsync(message, cancellationToken);
+
+
+
+            await _unitOfWork.FinishAsync();
+
+            var response = new SoftDeleteMessageCommandResponse
+            {
+                Id = message.Id,
+                ConversationId = message.ConversationId,
+                IsDeleted = message.IsDeleted
+            };
+
+            // Broadcast real-time message deleted event using strongly-typed publisher
+            await _messageHubPublisher.PublishMessageDeletedAsync(message.ConversationId, response, cancellationToken);
+
+            return response;
+        }
+        catch
+        {
+            await _unitOfWork.RollbackAsync();
+            throw;
+        }
+    }
+}
+
