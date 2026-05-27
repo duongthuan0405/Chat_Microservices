@@ -1,9 +1,20 @@
 using Microsoft.EntityFrameworkCore;
+using System.IO;
 using Microsoft.IdentityModel.Tokens;
 using AuthService.Data;
 using AuthService;
 
+// before CreateBuilder: load .env and ensure DEFAULT_CONNECTION_STRING exists
+DotNetEnv.Env.Load(); // loads .env into environment variables
+var defaultConnection = Environment.GetEnvironmentVariable("DEFAULT_CONNECTION_STRING");
+if (string.IsNullOrWhiteSpace(defaultConnection))
+{
+    throw new InvalidOperationException("DEFAULT_CONNECTION_STRING was not found in .env or environment variables. Aborting startup.");
+}
+
 var builder = WebApplication.CreateBuilder(args);
+// map DEFAULT_CONNECTION_STRING -> ConnectionStrings:DefaultConnection
+builder.Configuration["ConnectionStrings:DefaultConnection"] = defaultConnection;
 
 // Add services to the container.
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
