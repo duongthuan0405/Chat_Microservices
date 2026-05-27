@@ -17,7 +17,7 @@ func WithCORS(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Access-Control-Allow-Origin", "*")
 		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, DELETE, OPTIONS")
-		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization, X-User-ID")
+		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization, userId, X-User-ID")
 
 		if r.Method == http.MethodOptions {
 			w.WriteHeader(http.StatusNoContent)
@@ -51,10 +51,10 @@ func WithRequestLog(next http.Handler) http.Handler {
 
 func WithCurrentUser(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		userID := strings.TrimSpace(r.Header.Get("X-User-ID"))
+		userID := currentUserIDFromHeader(r)
 
 		if userID == "" {
-			WriteError(w, http.StatusUnauthorized, "missing X-User-ID header")
+			WriteError(w, http.StatusUnauthorized, "missing userId header")
 			return
 		}
 
@@ -75,4 +75,18 @@ func CurrentUserID(r *http.Request) string {
 	}
 
 	return userID
+}
+
+func currentUserIDFromHeader(r *http.Request) string {
+	userID := strings.TrimSpace(r.Header.Get("userId"))
+	if userID != "" {
+		return userID
+	}
+
+	userID = strings.TrimSpace(r.Header.Get("X-User-ID"))
+	if userID != "" {
+		return userID
+	}
+
+	return ""
 }

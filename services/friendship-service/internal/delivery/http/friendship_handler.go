@@ -8,6 +8,8 @@ import (
 	"strings"
 )
 
+var errFriendIDRequired = errors.New("friend_id không được trống")
+
 type FriendshipHandler struct {
 	usecase domain.FriendshipUsecase
 }
@@ -273,7 +275,7 @@ func (h *FriendshipHandler) GetStatus(w http.ResponseWriter, r *http.Request) {
 
 func readFriendshipActionRequest(r *http.Request) (domain.FriendshipActionRequest, error) {
 	var req domain.FriendshipActionRequest
-	var errFriendIDRequired = errors.New("friend_id không được trống")
+
 	contentType := r.Header.Get("Content-Type")
 
 	if strings.Contains(contentType, "application/json") {
