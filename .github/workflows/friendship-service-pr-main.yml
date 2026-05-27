@@ -1,0 +1,46 @@
+name: Friendship Service - Pull Request to main CI
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'services/friendship-service/**'
+      - '.github/workflows/friendship-service-pr-main.yml'
+
+jobs:
+  build:
+    name: Build and Verify
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./services/friendship-service
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Log information
+        run: |
+          echo "Pull Request #${{ github.event.number }} opened by ${{ github.event.pull_request.user.login }}"
+          echo "Source branch: ${{ github.head_ref }}"
+          echo "Target branch: ${{ github.base_ref }}"
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.26.x'
+          cache: true
+          cache-dependency-path: services/friendship-service/go.sum
+
+      - name: Download Go Modules
+        run: go mod download
+
+      - name: Verify Go Modules
+        run: go mod verify
+
+      - name: Build Project
+        run: go build ./...
+
+      - name: Run Tests
+        run: go test ./...

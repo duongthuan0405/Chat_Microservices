@@ -1,0 +1,81 @@
+name: Conversation Service - Push to main CI/CD
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'services/conversation-service/**'
+      - '.github/workflows/conversation-service-push-main.yml'
+
+  workflow_dispatch:
+    inputs:
+      imageTag:
+        description: Docker image tag
+        required: true
+
+jobs:
+  build-publish:
+    name: Build, Login to Azure, and Publish to ACR
+    runs-on: ubuntu-latest
+    environment: ConversationServiceProduction
+    defaults:
+      run:
+        working-directory: ./services/conversation-service
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.25.x'
+          cache: true
+          cache-dependency-path: services/conversation-service/go.sum
+
+      - name: Download Go Modules
+        run: go mod download
+
+      - name: Verify Go Modules
+        run: go mod verify
+
+      - name: Build Project
+        run: go build ./...
+
+      - name: Run Tests
+        run: go test ./...
+
+      - name: Setup Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Azure Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ secrets.AZURE_ACR_LOGIN_SERVER }}
+          username: ${{ secrets.AZURE_ACR_USERNAME }}
+          password: ${{ secrets.AZURE_ACR_PASSWORD }}
+
+      - name: Extract Docker Metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ secrets.AZURE_ACR_LOGIN_SERVER }}/conversation-service
+          tags: |
+            type=sha,format=long
+            type=raw,value=latest
+            type=raw,value=${{ github.event.inputs.imageTag }},enable=${{ github.event_name == 'workflow_dispatch' }}
+
+      - name: Build and Push Docker Image
+        uses: docker/build-push-action@v6
+        with:
+          context: services/conversation-service/
+          file: services/conversation-service/Dockerfile
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Fake Deployment
+        run: echo "Fake Deployment"
