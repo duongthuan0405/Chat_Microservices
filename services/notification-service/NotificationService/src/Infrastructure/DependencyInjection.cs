@@ -81,7 +81,10 @@ public static class DependencyInjection
 
             x.UsingRabbitMq((context, cfg) =>
             {
-                cfg.Host(rabbitHost, ushort.Parse(rabbitPort), "/", h =>
+                // Đối với CloudAMQP (LavinMQ), Virtual Host chính là Username chứ không phải "/"
+                var virtualHost = rabbitUser;
+
+                cfg.Host(rabbitHost, ushort.Parse(rabbitPort), virtualHost, h =>
                 {
                     h.Username(rabbitUser);
                     h.Password(rabbitPass);

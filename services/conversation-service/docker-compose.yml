@@ -1,0 +1,12 @@
+services:
+  conversation-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: conversation-service:latest
+    container_name: conversation-service
+    env_file:
+      - conversation.env
+    ports:
+      - "8083:8083"
+    restart: unless-stopped

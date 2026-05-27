@@ -19,7 +19,7 @@ public static class DependencyInjection
         services
             .AddPersistence(configuration)
             .AddRepositories()
-            .AddExternalServices();
+            .AddExternalServices(configuration);
 
         return services;
     }
@@ -58,10 +58,15 @@ public static class DependencyInjection
         return services;
     }
 
-    private static IServiceCollection AddExternalServices(this IServiceCollection services)
+    private static IServiceCollection AddExternalServices(this IServiceCollection services, IConfiguration configuration)
     {
-        // Register Conversation Service Client (External)
-        services.AddScoped<IConversationServiceClient, ConversationServiceClient>();
+        var conversationServiceUrl = configuration["CONVERSATION_SERVICE_URL"] ?? "http://conversation-service.default.svc.cluster.local:80";
+
+        // Register Conversation Service Client (External) with HttpClient
+        services.AddHttpClient<IConversationServiceClient, ConversationServiceClient>(client =>
+        {
+            client.BaseAddress = new Uri(conversationServiceUrl);
+        });
 
         // Register Strongly-Typed Message Hub Publisher
         services.AddScoped<IMessageHubPublisher, MessageHubPublisher>();

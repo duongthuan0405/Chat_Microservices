@@ -1,0 +1,35 @@
+# Ignore build outputs
+bin/
+obj/
+out/
+publish/
+
+# User and editor files
+.vs/
+.vscode/
+*.user
+*.suo
+
+# Git
+.git
+.gitignore
+
+# Docker files and local compose
+Dockerfile*
+docker-compose*
+.dockerignore
+
+# Node
+node_modules/
+npm-debug.log
+yarn-error.log
+
+# Local app settings and secrets
+appsettings.Development.json
+secrets.json
+*.pfx
+
+# OS artifacts
+Thumbs.db
+Desktop.ini
+*.log
