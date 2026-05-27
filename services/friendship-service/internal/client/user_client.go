@@ -62,7 +62,7 @@ func (c *UserClient) GetProfile(ctx context.Context, userID string) (domain.User
 		return domain.UserProfile{}, fmt.Errorf("user-service is required but USER_SERVICE_BASE_URL is empty")
 	}
 
-	endpoint := fmt.Sprintf("%s/internal/users/%s", c.baseURL, url.PathEscape(userID))
+	endpoint := fmt.Sprintf("%s/api/profile/%s", c.baseURL, url.PathEscape(userID))
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint, nil)
 	if err != nil {
