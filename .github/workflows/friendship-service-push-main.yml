@@ -142,27 +142,7 @@ jobs:
             kubectl apply -f $SVC_MANIFEST_PATH
             kubectl apply -f $MANIFEST_PATH
 
-            if ! kubectl rollout status deployment/friendship-service -n default --timeout=180s; then
-              echo "Rollout failed. Showing debug information..."
-
-              echo "Pods:"
-              kubectl get pods -l app=friendship-service -n default -o wide || true
-
-              echo "Deployment:"
-              kubectl describe deployment friendship-service -n default || true
-
-              echo "Pods describe:"
-              kubectl describe pods -l app=friendship-service -n default || true
-
-              echo "Current logs:"
-              kubectl logs -l app=friendship-service -n default --tail=200 || true
-
-              echo "Previous logs:"
-              kubectl logs -l app=friendship-service -n default --previous --tail=200 || true
-
-              exit 1
-            fi
-
+            kubectl rollout status deployment/friendship-service -n default --timeout=180s
             kubectl get pods -l app=friendship-service -n default
             kubectl get svc friendship-service -n default
             kubectl get endpoints friendship-service -n default
