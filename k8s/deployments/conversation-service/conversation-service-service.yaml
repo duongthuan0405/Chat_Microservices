@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: conversation-service
+  namespace: default
+  labels:
+    app: conversation-service
+spec:
+  type: ClusterIP
+  ports:
+    - port: ${APP_PORT}
+      targetPort: ${APP_CONTAINER_PORT}
+  selector:
+    app: conversation-service
