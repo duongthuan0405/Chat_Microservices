@@ -113,18 +113,13 @@ jobs:
               --docker-password='${{ secrets.AZURE_ACR_PASSWORD }}' \
               --dry-run=client -o yaml | kubectl apply -f -
 
-
-
-
-
-
             # Create/update app secrets securely
             kubectl create secret generic notification-service-secret \
-              --from-literal=DB_HOST='${{ secrets.NOTIFICATION_DB_HOST }}' \
-              --from-literal=DB_PORT='${{ secrets.NOTIFICATION_DB_PORT }}' \
-              --from-literal=DB_USERNAME='${{ secrets.NOTIFICATION_DB_USERNAME }}' \
-              --from-literal=DB_PASSWORD='${{ secrets.NOTIFICATION_DB_PASSWORD }}' \
-              --from-literal=DB_DATABASE='${{ secrets.NOTIFICATION_DB_DATABASE }}' \
+              --from-literal=DB_HOST='${{ secrets.DB_HOST }}' \
+              --from-literal=DB_PORT='${{ secrets.DB_PORT }}' \
+              --from-literal=DB_USERNAME='${{ secrets.DB_USERNAME }}' \
+              --from-literal=DB_PASSWORD='${{ secrets.DB_PASSWORD }}' \
+              --from-literal=DB_DATABASE='${{ secrets.DB_DATABASE }}' \
               --from-literal=RABBITMQ_HOST='${{ secrets.RABBITMQ_HOST }}' \
               --from-literal=RABBITMQ_PORT='${{ secrets.RABBITMQ_PORT }}' \
               --from-literal=RABBITMQ_USERNAME='${{ secrets.RABBITMQ_USERNAME }}' \
