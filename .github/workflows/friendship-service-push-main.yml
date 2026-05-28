@@ -7,6 +7,7 @@ on:
     paths:
       - 'services/friendship-service/**'
       - '.github/workflows/friendship-service-push-main.yml'
+      - 'k8s/deployments/friendship-service/**'
 
   workflow_dispatch:
     inputs:
@@ -77,5 +78,71 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      - name: Fake Deployment
-        run: echo "Fake Deployment"
+      # copy deployment manifests to VPS
+      - name: Copy Manifests to VPS
+        uses: appleboy/scp-action@master
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USERNAME }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          source: "k8s/deployments/friendship-service/*.yaml"
+          target: /tmp/deploy-manifests-friendship-${{ github.run_id }}
+
+      - name: SSH into vps
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USERNAME }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          script: |
+            set -e
+
+            DEPLOY_DIR="/tmp/deploy-manifests-friendship-${{ github.run_id }}"
+            trap "rm -rf $DEPLOY_DIR" EXIT
+
+            podman login -u ${{ secrets.AZURE_ACR_USERNAME }} -p ${{ secrets.AZURE_ACR_PASSWORD }} ${{ secrets.AZURE_ACR_LOGIN_SERVER }}
+            podman pull ${{ secrets.AZURE_ACR_LOGIN_SERVER }}/friendship-service:latest
+
+            if [ -f /etc/rancher/k3s/k3s.yaml ]; then
+              export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
+            fi
+
+            kubectl create secret docker-registry acr-secret \
+              --docker-server=${{ secrets.AZURE_ACR_LOGIN_SERVER }} \
+              --docker-username='${{ secrets.AZURE_ACR_USERNAME }}' \
+              --docker-password='${{ secrets.AZURE_ACR_PASSWORD }}' \
+              --dry-run=client -o yaml | kubectl apply -f -
+
+            kubectl create secret generic friendship-service-secret \
+              --from-literal=SERVER_PORT='8081' \
+              --from-literal=NEO4J_URI='${{ secrets.NEO4J_URI }}' \
+              --from-literal=NEO4J_USER='${{ secrets.NEO4J_USER }}' \
+              --from-literal=NEO4J_PASSWORD='${{ secrets.NEO4J_PASSWORD }}' \
+              --from-literal=USER_SERVICE_BASE_URL='${{ secrets.USER_SERVICE_BASE_URL }}' \
+              --from-literal=USER_SERVICE_REQUIRED='${{ secrets.USER_SERVICE_REQUIRED }}' \
+              --from-literal=RABBITMQ_URL='${{ secrets.RABBITMQ_URL }}' \
+              --from-literal=RABBITMQ_REQUIRED='${{ secrets.RABBITMQ_REQUIRED }}' \
+              --from-literal=FRIEND_REQUEST_SENT_EXCHANGE='${{ secrets.FRIEND_REQUEST_SENT_EXCHANGE }}' \
+              --from-literal=FRIEND_REQUEST_ACCEPTED_EXCHANGE='${{ secrets.FRIEND_REQUEST_ACCEPTED_EXCHANGE }}' \
+              --from-literal=SHUTDOWN_TIMEOUT_SECONDS='${{ secrets.SHUTDOWN_TIMEOUT_SECONDS }}' \
+              --from-literal=EXTERNAL_REQUEST_TIMEOUT_SECONDS='${{ secrets.EXTERNAL_REQUEST_TIMEOUT_SECONDS }}' \
+              --dry-run=client -o yaml | kubectl apply -f -
+
+            MANIFEST_PATH="$DEPLOY_DIR/k8s/deployments/friendship-service/friendship-service-deployment.yaml"
+            sed -i "s|\${DOCKER_USERNAME}/\${DOCKER_IMAGE}|${{ secrets.AZURE_ACR_LOGIN_SERVER }}/friendship-service:latest|g" $MANIFEST_PATH
+
+            SVC_MANIFEST_PATH="$DEPLOY_DIR/k8s/deployments/friendship-service/friendship-service-service.yaml"
+
+            echo "Rendered deployment manifest:"
+            grep -n "image:\|containerPort:\|path:\|port:" $MANIFEST_PATH
+
+            echo "Rendered service manifest:"
+            cat $SVC_MANIFEST_PATH
+
+            kubectl apply -f $SVC_MANIFEST_PATH
+            kubectl apply -f $MANIFEST_PATH
+
+            kubectl rollout status deployment/friendship-service -n default --timeout=180s
+            kubectl get pods -l app=friendship-service -n default
+            kubectl get svc friendship-service -n default
+            kubectl get endpoints friendship-service -n default
