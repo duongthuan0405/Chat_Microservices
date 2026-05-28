@@ -1,0 +1,21 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: conversation-service-migration-job
+  namespace: default
+spec:
+  template:
+    spec:
+      imagePullSecrets:
+        - name: acr-secret
+      containers:
+        - name: conversation-service-migration
+          image: ${DOCKER_USERNAME}/${DOCKER_IMAGE}
+          imagePullPolicy: Always
+          command: ["/app/conversation-migrate"]
+          args: ["up"]
+          envFrom:
+            - secretRef:
+                name: conversation-service-secret
+      restartPolicy: OnFailure
+  backoffLimit: 3
