@@ -19,6 +19,8 @@ jobs:
     name: Build, Login to Azure, and Publish to ACR
     runs-on: ubuntu-latest
     environment: NotificationServiceProduction
+    env:
+      DEPLOY_DIR: /tmp/deploy-manifests-notification-${{ github.run_id }}
     defaults: 
       run: 
         working-directory: ./services/notification-service/NotificationService/
@@ -74,6 +76,16 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
       
+      # copy deployment manifests to VPS
+      - name: Copy Manifests to VPS
+        uses: appleboy/scp-action@master
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USERNAME }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          source: "k8s/deployments/notification-service/*.yaml"
+          target: ${{ env.DEPLOY_DIR }}
+      
       - name: SSH into vps
         uses: appleboy/ssh-action@master
         with:
@@ -81,6 +93,9 @@ jobs:
           username: ${{ secrets.VPS_USERNAME }}
           key: ${{ secrets.VPS_SSH_KEY }}
           script: |
+            DEPLOY_DIR="${{ env.DEPLOY_DIR }}"
+            trap "rm -rf $DEPLOY_DIR" EXIT
+            
             # Pull the latest image
             podman login -u ${{ secrets.AZURE_ACR_USERNAME }} -p ${{ secrets.AZURE_ACR_PASSWORD }} ${{ secrets.AZURE_ACR_LOGIN_SERVER }}
             podman pull ${{ secrets.AZURE_ACR_LOGIN_SERVER }}/${{ secrets.DOCKER_IMAGE }}:latest
@@ -98,9 +113,10 @@ jobs:
               --docker-password='${{ secrets.AZURE_ACR_PASSWORD }}' \
               --dry-run=client -o yaml | kubectl apply -f -
 
-            # Clean up old manifests and pull fresh code
-            rm -rf /tmp/deploy-manifests
-            git clone https://github.com/duongthuan0405/Chat_Microservices.git /tmp/deploy-manifests
+
+
+
+
 
             # Create/update app secrets securely
             kubectl create secret generic notification-service-secret \
@@ -116,13 +132,24 @@ jobs:
               --dry-run=client -o yaml | kubectl apply -f -
 
             # Replace ONLY the non-secret metadata (Image Tag and Port)
-            MANIFEST_PATH="/tmp/deploy-manifests/k8s/deployments/notification-service/notification-service-deployment.yaml"
+            MANIFEST_PATH="$DEPLOY_DIR/k8s/deployments/notification-service/notification-service-deployment.yaml"
             sed -i "s|\${DOCKER_USERNAME}/\${DOCKER_IMAGE}|${{ secrets.AZURE_ACR_LOGIN_SERVER }}/${{ secrets.DOCKER_IMAGE }}:latest|g" $MANIFEST_PATH
             sed -i "s|\${APP_CONTAINER_PORT}|${{secrets.APP_CONTAINER_PORT}}|g" $MANIFEST_PATH
 
-            SVC_MANIFEST_PATH="/tmp/deploy-manifests/k8s/deployments/notification-service/notification-service-service.yaml"
+            SVC_MANIFEST_PATH="$DEPLOY_DIR/k8s/deployments/notification-service/notification-service-service.yaml"
             sed -i "s|\${APP_PORT}|${{secrets.APP_PORT}}|g" $SVC_MANIFEST_PATH
             sed -i "s|\${APP_CONTAINER_PORT}|${{secrets.APP_CONTAINER_PORT}}|g" $SVC_MANIFEST_PATH
+
+            JOB_MANIFEST_PATH="$DEPLOY_DIR/k8s/deployments/notification-service/notification-service-migration-job.yaml"
+            sed -i "s|\${DOCKER_USERNAME}/\${DOCKER_IMAGE}|${{ secrets.AZURE_ACR_LOGIN_SERVER }}/${{ secrets.DOCKER_IMAGE }}:latest|g" $JOB_MANIFEST_PATH
+
+            # Clean up old migration job if it exists
+            kubectl delete job notification-service-migration-job -n default --ignore-not-found=true
+
+            # Apply and wait for the migration job
+            kubectl apply -f $JOB_MANIFEST_PATH
+            echo "Waiting for migration job to complete..."
+            kubectl wait --for=condition=complete job/notification-service-migration-job -n default --timeout=120s
 
             # Apply Service and Deployment manifests copied to VPS
             kubectl apply -f $MANIFEST_PATH
