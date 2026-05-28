@@ -48,6 +48,7 @@ type Conversation struct {
 	UpdatedAt time.Time  `json:"updatedAt"`
 }
 
+
 type ConversationMember struct {
 	ID             uuid.UUID  `json:"id"`
 	ConversationID uuid.UUID  `json:"conversationId"`
@@ -92,6 +93,20 @@ type MemberIdsResponse struct {
 
 type UserProvider interface {
 	GetProfile(ctx context.Context, userID string) (UserProfile, error)
+}
+
+type AddedToGroupChatIntegrationEvent struct {
+	GroupID     string    `json:"groupId"`
+	GroupName   string    `json:"groupName"`
+	AdderID     string    `json:"adderId"`
+	AdderName   string    `json:"adderName"`
+	AddedUserID string    `json:"addedUserId"`
+	Timestamp   time.Time `json:"timestamp"`
+}
+
+type EventPublisher interface {
+	Publish(ctx context.Context, exchange string, payload []byte) error
+	Close() error
 }
 
 type ConversationRepository interface {

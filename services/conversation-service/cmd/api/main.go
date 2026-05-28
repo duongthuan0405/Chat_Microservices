@@ -5,6 +5,8 @@ import (
 	"conversation-service/internal/client"
 	"conversation-service/internal/config"
 	"conversation-service/internal/database"
+	"conversation-service/internal/domain"
+	"conversation-service/internal/events"
 	"conversation-service/internal/repository"
 	"conversation-service/internal/server"
 	"conversation-service/internal/usecase"
@@ -36,8 +38,23 @@ func main() {
 		cfg.ExternalRequestTimeout,
 	)
 
+	eventPublisher, err := createEventPublisher(cfg)
+	if err != nil {
+		log.Fatalf("event publisher error: %v", err)
+	}
+	defer func() {
+		if err := eventPublisher.Close(); err != nil {
+			log.Printf("event publisher close error: %v", err)
+		}
+	}()
+
 	conversationRepo := repository.NewPostgresConversationRepository(db)
-	conversationUsecase := usecase.NewConversationUsecase(conversationRepo, userClient)
+	conversationUsecase := usecase.NewConversationUsecase(
+		conversationRepo,
+		userClient,
+		eventPublisher,
+		cfg.AddedToGroupChatExchange,
+	)
 
 	httpServer := server.New(cfg.Address(), conversationUsecase)
 
@@ -65,4 +82,22 @@ func main() {
 
 		log.Println("conversation-service stopped")
 	}
+}
+
+func createEventPublisher(cfg config.Config) (domain.EventPublisher, error) {
+	if cfg.RabbitMQURL == "" {
+		if cfg.RabbitMQRequired {
+			return nil, errors.New("RABBITMQ_URL is required when RABBITMQ_REQUIRED=true")
+		}
+
+		log.Println("RabbitMQ is disabled, using noop publisher")
+		return events.NewNoopPublisher(), nil
+	}
+
+	return events.NewRabbitMQPublisher(
+		cfg.RabbitMQURL,
+		[]string{
+			cfg.AddedToGroupChatExchange,
+		},
+	)
 }
