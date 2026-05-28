@@ -122,6 +122,17 @@ jobs:
             sed -i "s|\${APP_PORT}|${{secrets.APP_PORT}}|g" $SVC_MANIFEST_PATH
             sed -i "s|\${APP_CONTAINER_PORT}|${{secrets.APP_CONTAINER_PORT}}|g" $SVC_MANIFEST_PATH
 
+            JOB_MANIFEST_PATH="/tmp/deploy-manifests/k8s/deployments/chat-service/chat-service-migration-job.yaml"
+            sed -i "s|\${DOCKER_USERNAME}/\${DOCKER_IMAGE}|${{ secrets.AZURE_ACR_LOGIN_SERVER }}/${{ secrets.DOCKER_IMAGE }}:latest|g" $JOB_MANIFEST_PATH
+
+            # Clean up old migration job if it exists
+            kubectl delete job chat-service-migration-job -n default --ignore-not-found=true
+
+            # Apply and wait for the migration job
+            kubectl apply -f $JOB_MANIFEST_PATH
+            echo "Waiting for migration job to complete..."
+            kubectl wait --for=condition=complete job/chat-service-migration-job -n default --timeout=120s
+
             # Apply Service and Deployment manifests copied to VPS
             kubectl apply -f $MANIFEST_PATH
             kubectl apply -f $SVC_MANIFEST_PATH
