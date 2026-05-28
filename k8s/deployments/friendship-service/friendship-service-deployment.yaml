@@ -6,7 +6,7 @@ metadata:
   labels:
     app: friendship-service
 spec:
-  replicas: 2
+  replicas: 1
   selector:
     matchLabels:
       app: friendship-service
@@ -28,11 +28,11 @@ spec:
                 name: friendship-service-secret
           resources:
             limits:
-              cpu: "500m"
-              memory: "512Mi"
-            requests:
-              cpu: "250m"
+              cpu: "300m"
               memory: "256Mi"
+            requests:
+              cpu: "50m"
+              memory: "64Mi"
           readinessProbe:
             httpGet:
               path: /health
