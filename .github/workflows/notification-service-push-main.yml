@@ -74,60 +74,60 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
       
-      - name: Fake Deployment
-        run: echo "Fake Deployment"
-      
-      # - name: Azure Login
-      #   uses: azure/login@v2
-      #   with:
-      #     creds: ${{ secrets.AZURE_CREDENTIALS }}
+      - name: SSH into vps
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USERNAME }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          script: |
+            # Pull the latest image
+            podman login -u ${{ secrets.AZURE_ACR_USERNAME }} -p ${{ secrets.AZURE_ACR_PASSWORD }} ${{ secrets.AZURE_ACR_LOGIN_SERVER }}
+            podman pull ${{ secrets.AZURE_ACR_LOGIN_SERVER }}/${{ secrets.DOCKER_IMAGE }}:latest
 
-      # - name: Set AKS Context
-      #   uses: azure/aks-set-context@v4
-      #   with:
-      #     resource-group: ${{ secrets.AZURE_RESOURCE_GROUP }}
-      #     cluster-name: ${{ secrets.AZURE_CLUSTER_NAME }}
+            set -e
+            # Ensure kubectl can access the cluster (k3s fallback)
+            if [ -f /etc/rancher/k3s/k3s.yaml ]; then
+              export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
+            fi
 
-      # - name: Substitute Environment Variables in Manifests
-      #   env:
-      #     DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
-      #     DOCKER_IMAGE: "${{ secrets.DOCKER_IMAGE }}"
-      #     DB_HOST: "${{ secrets.DB_HOST }}"
-      #     DB_PORT: "${{ secrets.DB_PORT }}"
-      #     DB_USERNAME: "${{ secrets.DB_USERNAME }}"
-      #     DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
-      #     DB_DATABASE: "${{ secrets.DB_DATABASE }}"
-      #     RABBITMQ_HOST: "${{ secrets.RABBITMQ_HOST }}"
-      #     RABBITMQ_PORT: "${{ secrets.RABBITMQ_PORT }}"
-      #     RABBITMQ_USERNAME: "${{ secrets.RABBITMQ_USERNAME }}"
-      #     RABBITMQ_PASSWORD: ${{ secrets.RABBITMQ_PASSWORD }}
-      #   run: |
-      #     envsubst < k8s/deployments/notification-service/notification-service-migration-job.yaml > temp_job.yaml && mv temp_job.yaml k8s/deployments/notification-service/notification-service-migration-job.yaml
-      #     envsubst < k8s/deployments/notification-service/notification-service-deployment.yaml > temp_dep.yaml && mv temp_dep.yaml k8s/deployments/notification-service/notification-service-deployment.yaml
+            # Create/update imagePullSecret for ACR
+            kubectl create secret docker-registry acr-secret \
+              --docker-server=${{ secrets.AZURE_ACR_LOGIN_SERVER }} \
+              --docker-username='${{ secrets.AZURE_ACR_USERNAME }}' \
+              --docker-password='${{ secrets.AZURE_ACR_PASSWORD }}' \
+              --dry-run=client -o yaml | kubectl apply -f -
 
-      # - name: Deploy Database Migration Job
-      #   uses: Azure/k8s-deploy@v5
-      #   with:
-      #     action: deploy
-      #     manifests: |
-      #       k8s/deployments/notification-service/notification-service-migration-job.yaml
-      #     images: |
-      #       ${{ secrets.DOCKER_USERNAME }}/${{ secrets.DOCKER_IMAGE }}:${{ steps.meta.outputs.version }}
+            # Clean up old manifests and pull fresh code
+            rm -rf /tmp/deploy-manifests
+            git clone https://github.com/duongthuan0405/Chat_Microservices.git /tmp/deploy-manifests
 
-      # - name: Wait for Migration to Complete
-      #   run: |
-      #     kubectl wait --for=condition=complete job/notification-service-migration-job --timeout=180s
+            # Create/update app secrets securely
+            kubectl create secret generic notification-service-secret \
+              --from-literal=DB_HOST='${{ secrets.NOTIFICATION_DB_HOST }}' \
+              --from-literal=DB_PORT='${{ secrets.NOTIFICATION_DB_PORT }}' \
+              --from-literal=DB_USERNAME='${{ secrets.NOTIFICATION_DB_USERNAME }}' \
+              --from-literal=DB_PASSWORD='${{ secrets.NOTIFICATION_DB_PASSWORD }}' \
+              --from-literal=DB_DATABASE='${{ secrets.NOTIFICATION_DB_DATABASE }}' \
+              --from-literal=RABBITMQ_HOST='${{ secrets.RABBITMQ_HOST }}' \
+              --from-literal=RABBITMQ_PORT='${{ secrets.RABBITMQ_PORT }}' \
+              --from-literal=RABBITMQ_USERNAME='${{ secrets.RABBITMQ_USERNAME }}' \
+              --from-literal=RABBITMQ_PASSWORD='${{ secrets.RABBITMQ_PASSWORD }}' \
+              --dry-run=client -o yaml | kubectl apply -f -
 
-      # - name: Deploy Main Application to AKS
-      #   uses: Azure/k8s-deploy@v5
-      #   with:
-      #     action: deploy
-      #     manifests: |
-      #       k8s/deployments/notification-service/notification-service-deployment.yaml
-      #       k8s/deployments/notification-service/notification-service-service.yaml
-      #     images: |
-      #       ${{ secrets.DOCKER_USERNAME }}/${{ secrets.DOCKER_IMAGE}}:${{ steps.meta.outputs.version }}
+            # Replace ONLY the non-secret metadata (Image Tag and Port)
+            MANIFEST_PATH="/tmp/deploy-manifests/k8s/deployments/notification-service/notification-service-deployment.yaml"
+            sed -i "s|\${DOCKER_USERNAME}/\${DOCKER_IMAGE}|${{ secrets.AZURE_ACR_LOGIN_SERVER }}/${{ secrets.DOCKER_IMAGE }}:latest|g" $MANIFEST_PATH
+            sed -i "s|\${APP_CONTAINER_PORT}|${{secrets.APP_CONTAINER_PORT}}|g" $MANIFEST_PATH
 
-      # - name: Clean up Migration Job
-      #   run: |
-      #     kubectl delete job notification-service-migration-job --ignore-not-found=true
+            SVC_MANIFEST_PATH="/tmp/deploy-manifests/k8s/deployments/notification-service/notification-service-service.yaml"
+            sed -i "s|\${APP_PORT}|${{secrets.APP_PORT}}|g" $SVC_MANIFEST_PATH
+            sed -i "s|\${APP_CONTAINER_PORT}|${{secrets.APP_CONTAINER_PORT}}|g" $SVC_MANIFEST_PATH
+
+            # Apply Service and Deployment manifests copied to VPS
+            kubectl apply -f $MANIFEST_PATH
+            kubectl apply -f $SVC_MANIFEST_PATH
+
+            # Show status
+            kubectl rollout status deployment/notification-service -n default || true
+            kubectl get pods -l app=notification-service -n default
