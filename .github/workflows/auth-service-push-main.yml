@@ -19,6 +19,8 @@ jobs:
     name: Build, Login to Azure, and Publish to ACR
     runs-on: ubuntu-latest
     environment: AuthServiceProduction
+    env:
+      DEPLOY_DIR: /tmp/deploy-manifests-auth-${{ github.run_id }}
     defaults:
       run:
         working-directory: ./services/auth-service/
@@ -82,7 +84,7 @@ jobs:
           username: ${{ secrets.VPS_USERNAME }}
           key: ${{ secrets.VPS_SSH_KEY }}
           source: "k8s/deployments/auth-service/*.yaml"
-          target: "/tmp/deploy-manifests/"
+          target: ${{ env.DEPLOY_DIR }}
       
       - name: SSH into vps
         uses: appleboy/ssh-action@master
@@ -91,6 +93,9 @@ jobs:
           username: ${{ secrets.VPS_USERNAME }}
           key: ${{ secrets.VPS_SSH_KEY }}
           script: |
+            DEPLOY_DIR="${{ env.DEPLOY_DIR }}"
+            trap "rm -rf $DEPLOY_DIR" EXIT
+            
             # Pull the latest image
             podman login -u ${{ secrets.AZURE_ACR_USERNAME }} -p ${{ secrets.AZURE_ACR_PASSWORD }} ${{ secrets.AZURE_ACR_LOGIN_SERVER }}
             podman pull ${{ secrets.AZURE_ACR_LOGIN_SERVER }}/${{ secrets.DOCKER_IMAGE }}:latest
@@ -117,11 +122,11 @@ jobs:
               --dry-run=client -o yaml | kubectl apply -f -
 
             # Replace image tag in deployment manifest
-            sed -i "s|image: .*$|image: ${{ secrets.AZURE_ACR_LOGIN_SERVER }}/${{ secrets.DOCKER_IMAGE }}:latest|g" /tmp/deploy-manifests/k8s/deployments/auth-service/auth-service-deployment.yaml
+            sed -i "s|image: .*$|image: ${{ secrets.AZURE_ACR_LOGIN_SERVER }}/${{ secrets.DOCKER_IMAGE }}:latest|g" $DEPLOY_DIR/k8s/deployments/auth-service/auth-service-deployment.yaml
 
             # Apply Service and Deployment manifests copied to VPS
-            kubectl apply -f /tmp/deploy-manifests/k8s/deployments/auth-service/auth-service-deployment.yaml
-            kubectl apply -f /tmp/deploy-manifests/k8s/deployments/auth-service/auth-service-service.yaml
+            kubectl apply -f $DEPLOY_DIR/k8s/deployments/auth-service/auth-service-deployment.yaml
+            kubectl apply -f $DEPLOY_DIR/k8s/deployments/auth-service/auth-service-service.yaml
 
             # Show status
             kubectl rollout status deployment/auth-service -n default || true
