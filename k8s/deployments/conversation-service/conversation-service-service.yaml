@@ -8,7 +8,7 @@ metadata:
 spec:
   type: ClusterIP
   ports:
-    - port: ${APP_PORT}
-      targetPort: ${APP_CONTAINER_PORT}
+    - port: 8083
+      targetPort: 8083
   selector:
     app: conversation-service
