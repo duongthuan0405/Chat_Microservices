@@ -7,6 +7,7 @@ on:
     paths:
       - 'services/conversation-service/**'
       - '.github/workflows/conversation-service-push-main.yml'
+      - 'k8s/deployments/conversation-service/**'
   workflow_dispatch:
     inputs:
       imageTag:
