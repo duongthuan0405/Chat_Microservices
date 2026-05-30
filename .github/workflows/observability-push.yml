@@ -52,6 +52,14 @@ jobs:
             kubectl get nodes
 
             echo "Applying Prometheus and Grafana manifests..."
+
+            echo "Creating Grafana admin secret..."
+            kubectl create secret generic grafana-admin-secret \
+              --from-literal=admin-user='${{ secrets.GRAFANA_ADMIN_USER }}' \
+              --from-literal=admin-password='${{ secrets.GRAFANA_ADMIN_PASSWORD }}' \
+              -n default \
+              --dry-run=client -o yaml | kubectl apply -f -
+
             kubectl apply -f $DEPLOY_DIR/k8s/observability/prometheus-configmap.yaml
             kubectl apply -f $DEPLOY_DIR/k8s/observability/prometheus-deployment.yaml
             kubectl apply -f $DEPLOY_DIR/k8s/observability/prometheus-service.yaml
