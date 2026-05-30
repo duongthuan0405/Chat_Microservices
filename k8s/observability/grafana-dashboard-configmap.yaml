@@ -1,0 +1,113 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-dashboard-config
+  namespace: default
+data:
+  dashboard-provider.yml: |
+    apiVersion: 1
+
+    providers:
+      - name: "Chat Microservices"
+        orgId: 1
+        folder: "Chat Microservices"
+        type: file
+        disableDeletion: false
+        editable: true
+        options:
+          path: /var/lib/grafana/dashboards
+
+  microservices-overview.json: |
+    {
+      "uid": "chat-microservices-overview",
+      "title": "Chat Microservices Overview",
+      "schemaVersion": 39,
+      "version": 1,
+      "refresh": "10s",
+      "timezone": "browser",
+      "panels": [
+        {
+          "type": "timeseries",
+          "title": "Request Rate by Service",
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "gridPos": { "x": 0, "y": 0, "w": 12, "h": 8 },
+          "targets": [
+            {
+              "expr": "sum(rate(http_requests_received_total[5m])) by (service) or sum(rate(chat_microservice_http_requests_total[5m])) by (service)",
+              "legendFormat": "{{service}}"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "reqps"
+            },
+            "overrides": []
+          }
+        },
+        {
+          "type": "timeseries",
+          "title": "Error Rate by Service",
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "gridPos": { "x": 12, "y": 0, "w": 12, "h": 8 },
+          "targets": [
+            {
+              "expr": "sum(rate(http_requests_received_total{code=~\"5..\"}[5m])) by (service) / sum(rate(http_requests_received_total[5m])) by (service) or sum(rate(chat_microservice_http_requests_total{status=~\"5..\"}[5m])) by (service) / sum(rate(chat_microservice_http_requests_total[5m])) by (service)",
+              "legendFormat": "{{service}}"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "percentunit"
+            },
+            "overrides": []
+          }
+        },
+        {
+          "type": "timeseries",
+          "title": "Latency p95 by Service",
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "gridPos": { "x": 0, "y": 8, "w": 12, "h": 8 },
+          "targets": [
+            {
+              "expr": "histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket[5m])) by (le, service)) or histogram_quantile(0.95, sum(rate(chat_microservice_http_request_duration_seconds_bucket[5m])) by (le, service))",
+              "legendFormat": "{{service}}"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "s"
+            },
+            "overrides": []
+          }
+        },
+        {
+          "type": "stat",
+          "title": "Service Up",
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "gridPos": { "x": 12, "y": 8, "w": 12, "h": 8 },
+          "targets": [
+            {
+              "expr": "up",
+              "legendFormat": "{{job}}"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "short",
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  { "color": "red", "value": null },
+                  { "color": "green", "value": 1 }
+                ]
+              }
+            },
+            "overrides": []
+          }
+        }
+      ],
+      "time": {
+        "from": "now-1h",
+        "to": "now"
+      }
+    }
