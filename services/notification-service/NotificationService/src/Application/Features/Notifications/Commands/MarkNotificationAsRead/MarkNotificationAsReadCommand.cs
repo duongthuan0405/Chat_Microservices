@@ -12,6 +12,7 @@ namespace NotificationService.Application.Features.Notifications.Commands.MarkNo
 public class MarkNotificationAsReadCommand : IRequest<MarkNotificationAsReadCommandResponse>
 {
     public Guid Id { get; set; }
+    public Guid UserId { get; set; }
 }
 
 public class MarkNotificationAsReadCommandResponse
@@ -49,6 +50,11 @@ public class MarkNotificationAsReadCommandHandler : IRequestHandler<MarkNotifica
             if (history == null)
             {
                 throw new NotFoundException($"Notification with ID '{request.Id}' was not found.");
+            }
+
+            if (history.UserId != request.UserId)
+            {
+                throw new UnauthorizedException("You are not authorized to mark this notification as read.");
             }
 
             history.IsRead = true;
