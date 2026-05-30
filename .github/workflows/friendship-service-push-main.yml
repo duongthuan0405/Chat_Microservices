@@ -142,6 +142,8 @@ jobs:
             kubectl apply -f $SVC_MANIFEST_PATH
             kubectl apply -f $MANIFEST_PATH
 
+            kubectl rollout restart deployment/friendship-service -n default
+
             kubectl rollout status deployment/friendship-service -n default --timeout=180s
             kubectl get pods -l app=friendship-service -n default
             kubectl get svc friendship-service -n default
