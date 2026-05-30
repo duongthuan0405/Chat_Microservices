@@ -64,7 +64,8 @@ public class NotificationController : ControllerBase
     public async Task<ActionResult<ApiSuccessResponse<NotificationHistoryResponseDto>>> MarkAsReadAsync(
         [FromRoute] Guid id)
     {
-        var command = new MarkNotificationAsReadCommand { Id = id };
+        var userId = HttpContext.GetCurrentUserId();
+        var command = new MarkNotificationAsReadCommand { Id = id, UserId = userId };
         var result = await _sender.Send(command);
 
         var response = new NotificationHistoryResponseDto
