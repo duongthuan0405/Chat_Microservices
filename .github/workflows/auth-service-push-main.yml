@@ -128,6 +128,8 @@ jobs:
             kubectl apply -f $DEPLOY_DIR/k8s/deployments/auth-service/auth-service-deployment.yaml
             kubectl apply -f $DEPLOY_DIR/k8s/deployments/auth-service/auth-service-service.yaml
 
+            kubectl rollout restart deployment/auth-service -n default
+
             # Show status
             kubectl rollout status deployment/auth-service -n default || true
             kubectl get pods -l app=auth-service -n default

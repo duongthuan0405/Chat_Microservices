@@ -5,7 +5,7 @@ metadata:
   labels:
     app: auth-service
 spec:
-  replicas: 2
+  replicas: 1
   selector:
     matchLabels:
       app: auth-service
@@ -19,14 +19,19 @@ spec:
       containers:
         - name: auth-service
           image: ${{ secrets.AZURE_ACR_LOGIN_SERVER }}/${{ secrets.DOCKER_IMAGE }}:latest
-          imagePullPolicy: IfNotPresent
+          imagePullPolicy: Always
           ports:
             - containerPort: 8080
           env:
             - name: ASPNETCORE_ENVIRONMENT
               value: Production
-            - name: DEFAULT_CONNECTION_STRING
-              valueFrom:
-                secretKeyRef:
-                  name: auth-service-secret
-                  key: DEFAULT_CONNECTION_STRING
+          envFrom:
+            - secretRef:
+                name: auth-service-secret
+          resources:
+            limits:
+              cpu: "300m"
+              memory: "256Mi"
+            requests:
+              cpu: "50m"
+              memory: "64Mi"
