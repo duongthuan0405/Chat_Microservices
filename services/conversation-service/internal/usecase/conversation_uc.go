@@ -12,11 +12,12 @@ import (
 )
 
 type conversationUsecase struct {
-	repo                      domain.ConversationRepository
-	userProvider              domain.UserProvider
-	eventPublisher            domain.EventPublisher
-	addedToGroupChatExchange  string
+	repo                     domain.ConversationRepository
+	userProvider             domain.UserProvider
+	eventPublisher           domain.EventPublisher
+	addedToGroupChatExchange string
 }
+
 func NewConversationUsecase(
 	repo domain.ConversationRepository,
 	userProvider domain.UserProvider,
@@ -401,4 +402,22 @@ func (uc *conversationUsecase) publishAddedToGroupChatEvent(
 	}
 
 	return uc.eventPublisher.Publish(ctx, uc.addedToGroupChatExchange, payload)
+}
+
+func (uc *conversationUsecase) SearchConversations(ctx context.Context, currentUserID string, keyword string, conversationType string) ([]domain.Conversation, error) {
+	currentID, err := parseUUID(currentUserID, "current user id")
+	if err != nil {
+		return nil, err
+	}
+
+	keyword = strings.TrimSpace(keyword)
+	conversationType = strings.ToUpper(strings.TrimSpace(conversationType))
+
+	if conversationType != "" &&
+		conversationType != domain.ConversationTypeDirect &&
+		conversationType != domain.ConversationTypeGroup {
+		return nil, errors.New("conversation type không hợp lệ")
+	}
+
+	return uc.repo.SearchConversations(ctx, currentID, keyword, conversationType)
 }

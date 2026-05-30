@@ -150,6 +150,8 @@ jobs:
             kubectl apply -f $MANIFEST_PATH
             kubectl apply -f $SVC_MANIFEST_PATH
 
+            kubectl rollout restart deployment/notification-service -n default
+
             # Show status
             kubectl rollout status deployment/notification-service -n default || true
             kubectl get pods -l app=notification-service -n default

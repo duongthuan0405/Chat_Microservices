@@ -136,6 +136,18 @@ app.MapPut("/api/profile/{userId}", async (AuthenticationService authService, st
 })
 .WithName("UpdateProfile");
 
+app.MapGet("/api/users/search", async (AuthenticationService authService, string query) =>
+{
+    try
+    {
+        return Results.Ok(await authService.SearchUsersAsync(query));
+    }
+    catch (ArgumentException exception)
+    {
+        return Results.BadRequest(new { message = exception.Message });
+    }
+}).WithName("SearchUsers");
+
 // Ensure database is created/migrated on startup only when requested
 if (args != null && args.Contains("--migrate"))
 {

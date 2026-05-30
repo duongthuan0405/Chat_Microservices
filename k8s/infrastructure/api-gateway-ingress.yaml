@@ -102,6 +102,15 @@ spec:
             port:
               number: 3667
 
+      #Auth Service (User Management)
+      - path: /api/users
+        pathType: Prefix
+        backend:
+          service:
+            name: auth-service
+            port:
+              number: 3667
+
       # Notification Service (SignalR & REST APIs)
       - path: /hubs/notifications
         pathType: Prefix

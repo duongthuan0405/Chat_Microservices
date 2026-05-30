@@ -4,6 +4,7 @@ import (
 	"context"
 	"conversation-service/internal/domain"
 	"errors"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -215,6 +216,65 @@ func (r *postgresConversationRepository) ListConversationsByUser(ctx context.Con
 		  AND c.status = $3
 		ORDER BY c.updated_at DESC
 	`, userID, domain.MemberStatusActive, domain.ConversationStatusActive)
+
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	items := make([]domain.Conversation, 0)
+
+	for rows.Next() {
+		var c domain.Conversation
+
+		if err := rows.Scan(
+			&c.ID,
+			&c.Type,
+			&c.Name,
+			&c.AvatarURL,
+			&c.OwnerID,
+			&c.CreatedBy,
+			&c.Status,
+			&c.CreatedAt,
+			&c.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+
+		items = append(items, c)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return items, nil
+}
+
+func (r *postgresConversationRepository) SearchConversations(ctx context.Context, userID uuid.UUID, keyword string, conversationType string) ([]domain.Conversation, error) {
+	keyword = strings.TrimSpace(keyword)
+	conversationType = strings.ToUpper(strings.TrimSpace(conversationType))
+
+	rows, err := r.db.Query(ctx, `
+		SELECT
+			c.id,
+			c.type,
+			c.name,
+			c.avatar_url,
+			c.owner_id,
+			c.created_by,
+			c.status,
+			c.created_at,
+			c.updated_at
+		FROM conversations c
+		INNER JOIN conversation_members m ON m.conversation_id = c.id
+		WHERE m.user_id = $1
+		  AND m.status = $2
+		  AND c.status = $3
+		  AND ($4 = '' OR c.type = $4)
+		  AND ($5 = '' OR COALESCE(c.name, '') ILIKE '%' || $5 || '%')
+		ORDER BY c.updated_at DESC
+	`, userID, domain.MemberStatusActive, domain.ConversationStatusActive, conversationType, keyword)
 
 	if err != nil {
 		return nil, err
