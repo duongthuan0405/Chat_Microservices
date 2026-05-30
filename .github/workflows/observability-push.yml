@@ -91,12 +91,36 @@ jobs:
               --image=curlimages/curl \
               -- curl -sS http://prometheus-service.default.svc.cluster.local:9090/-/ready
 
+            echo "Waiting for Grafana service endpoints..."
+            for i in $(seq 1 30); do
+              kubectl get endpoints grafana-service -n default
+
+              if kubectl get endpoints grafana-service -n default | grep -q ":3000"; then
+                echo "Grafana endpoint is available."
+                break
+              fi
+
+              echo "Grafana endpoint is not ready yet. Retry $i/30..."
+              sleep 5
+            done
+
             echo "Testing Grafana health from inside cluster..."
             kubectl run grafana-health-check-${{ github.run_id }} \
               --rm -i \
               --restart=Never \
               --image=curlimages/curl \
-              -- curl -sS http://grafana-service.default.svc.cluster.local/api/health
+              -- sh -c '
+                for i in $(seq 1 30); do
+                  echo "Checking Grafana health attempt $i/30..."
+                  if curl -fsS http://grafana-service.default.svc.cluster.local/api/health; then
+                    exit 0
+                  fi
+                  sleep 5
+                done
+
+                echo "Grafana health check failed after retries."
+                exit 1
+              '
 
             echo "Testing Prometheus targets API..."
             kubectl run prometheus-targets-check-${{ github.run_id }} \
