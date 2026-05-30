@@ -3,6 +3,7 @@ import * as signalR from "@microsoft/signalr";
 class ChatHubService {
   private connection: signalR.HubConnection | null = null;
   private isConnecting: boolean = false;
+  private messageCallbacks: ((message: any) => void)[] = [];
 
   public async startConnection(token: string) {
     if (this.connection?.state === signalR.HubConnectionState.Connected || this.isConnecting) {
@@ -12,9 +13,10 @@ class ChatHubService {
     this.isConnecting = true;
 
     try {
+      const API_URL = import.meta.env.VITE_API_URL || "";
       this.connection = new signalR.HubConnectionBuilder()
         // Cấu hình URL của Chat Hub (giả sử là /hubs/chat)
-        .withUrl("/hubs/chat", {
+        .withUrl(`${API_URL}/hubs/chat`, {
           accessTokenFactory: () => token,
           // Bắt buộc dùng LongPolling để token được gửi qua header thay vì query parameter
           transport: signalR.HttpTransportType.LongPolling
@@ -22,6 +24,11 @@ class ChatHubService {
         .withAutomaticReconnect()
         .configureLogging(signalR.LogLevel.Information)
         .build();
+
+      // Đăng ký lại các callbacks đã add trước đó
+      this.messageCallbacks.forEach(cb => {
+        this.connection?.on("ReceiveMessage", cb);
+      });
 
       await this.connection.start();
       console.log("🟢 SignalR Connected to Chat Hub");
@@ -42,23 +49,47 @@ class ChatHubService {
 
   // Lắng nghe tin nhắn mới
   public onReceiveMessage(callback: (message: any) => void) {
+    if (!this.messageCallbacks.includes(callback)) {
+      this.messageCallbacks.push(callback);
+    }
     if (this.connection) {
       this.connection.on("ReceiveMessage", callback);
     }
   }
 
   public offReceiveMessage(callback: (message: any) => void) {
+    this.messageCallbacks = this.messageCallbacks.filter(cb => cb !== callback);
     if (this.connection) {
       this.connection.off("ReceiveMessage", callback);
     }
   }
 
-  // Tùy chọn: Hàm gửi tin nhắn qua SignalR (nếu Backend cho phép Client Invoke trực tiếp)
-  // public async sendMessage(conversationId: string, content: string) {
-  //   if (this.connection?.state === signalR.HubConnectionState.Connected) {
-  //     await this.connection.invoke("SendMessage", conversationId, content);
-  //   }
-  // }
+  // Join conversation group
+  public async joinConversation(conversationId: string) {
+    let retries = 0;
+    while (this.connection?.state !== signalR.HubConnectionState.Connected && retries < 10) {
+      await new Promise(resolve => setTimeout(resolve, 500));
+      retries++;
+    }
+    if (this.connection?.state === signalR.HubConnectionState.Connected) {
+      try {
+        await this.connection.invoke("JoinConversation", conversationId);
+      } catch (err) {
+        console.error("Lỗi JoinConversation:", err);
+      }
+    }
+  }
+
+  // Leave conversation group
+  public async leaveConversation(conversationId: string) {
+    if (this.connection?.state === signalR.HubConnectionState.Connected) {
+      try {
+        await this.connection.invoke("LeaveConversation", conversationId);
+      } catch (err) {
+        console.error("Lỗi LeaveConversation:", err);
+      }
+    }
+  }
 }
 
 export const chatHubService = new ChatHubService();

@@ -4,17 +4,21 @@ export interface ConversationResponse {
   id: string;
   name: string;
   isGroup: boolean;
+  type?: string;
   avatarUrl?: string;
   lastMessage?: string;
   lastMessageTime?: string;
   lastActivity?: string;
   membersCount?: number;
   unreadCount?: number;
+  email?: string;
 }
 
 export interface ConversationMember {
   id: string;
-  name: string;
+  userId?: string;
+  user_id?: string;
+  name?: string;
   avatarUrl?: string;
   role: string;
 }
@@ -54,6 +58,11 @@ export const conversationApi = {
 
   leaveGroup: async (conversationId: string): Promise<any> => {
     const res = await axiosClient.post(`/api/conversations/${conversationId}/leave`);
+    return extractData(res);
+  },
+
+  createDirect: async (memberId: string): Promise<ConversationResponse> => {
+    const res = await axiosClient.post("/api/conversations/direct", { member_id: memberId });
     return extractData(res);
   },
 };

@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
-import { Plus, Search, Users, Crown, Shield, User, Settings as SettingsIcon, X, Loader2 } from "lucide-react";
+import { Plus, Search, Users, Crown, Shield, User, Settings as SettingsIcon, X, Loader2, Check, UserPlus, UserMinus } from "lucide-react";
 import { conversationApi, ConversationResponse, ConversationMember } from "../../api/conversationApi";
 import { friendshipApi, FriendResponse } from "../../api/friendshipApi";
+import { authApi } from "../../api/authApi";
 
 export function GroupsPage() {
   const [groups, setGroups] = useState<ConversationResponse[]>([]);
@@ -19,9 +20,15 @@ export function GroupsPage() {
   const [groupMembers, setGroupMembers] = useState<ConversationMember[]>([]);
   const [loadingMembers, setLoadingMembers] = useState(false);
 
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [showAddMemberModal, setShowAddMemberModal] = useState(false);
+  const [friendsToAdd, setFriendsToAdd] = useState<string[]>([]);
+  const [addingMember, setAddingMember] = useState(false);
+
   useEffect(() => {
     fetchGroups();
     fetchFriends();
+    setCurrentUserId(localStorage.getItem("user_id"));
   }, []);
 
   const fetchGroups = async () => {
@@ -29,7 +36,7 @@ export function GroupsPage() {
       setLoading(true);
       const data = await conversationApi.getConversations();
       // Lọc ra các hội thoại là nhóm
-      setGroups(data.filter((c: any) => c.isGroup) || []);
+      setGroups(data.filter((c: any) => c.isGroup === true || c.type === "GROUP") || []);
     } catch (error) {
       console.error("Lỗi khi tải nhóm:", error);
     } finally {
@@ -40,7 +47,13 @@ export function GroupsPage() {
   const fetchFriends = async () => {
     try {
       const data = await friendshipApi.getFriends();
-      setFriends(data || []);
+      const ids = data || [];
+      const stringIds = ids.map((item: any) => typeof item === "string" ? item : item.id);
+      const profiles = await Promise.all(
+        stringIds.map(id => authApi.getProfile(id).catch(() => null))
+      );
+      const friendsProfiles = profiles.filter(p => p !== null).map(p => p.data || p);
+      setFriends(friendsProfiles);
     } catch (error) {
       console.error("Lỗi tải bạn bè:", error);
     }
@@ -76,7 +89,25 @@ export function GroupsPage() {
     try {
       setLoadingMembers(true);
       const members = await conversationApi.getMembers(group.id);
-      setGroupMembers(members || []);
+      
+      // Fetch profiles for members to get names and avatars
+      if (members && members.length > 0) {
+        const membersWithProfiles = await Promise.all(
+          members.map(async (m: any) => {
+            const mId = m.userId || m.user_id || m.id;
+            try {
+              const profileReq = await authApi.getProfile(mId);
+              const profile = profileReq.data || profileReq;
+              return { ...m, name: profile.name || m.name, avatarUrl: profile.avatarUrl || m.avatarUrl };
+            } catch (e) {
+              return m;
+            }
+          })
+        );
+        setGroupMembers(membersWithProfiles);
+      } else {
+        setGroupMembers([]);
+      }
     } catch (error) {
       console.error("Lỗi tải thành viên:", error);
     } finally {
@@ -88,7 +119,7 @@ export function GroupsPage() {
     if (!selectedGroup) return;
     if (confirm(`Bạn có chắc chắn muốn rời nhóm "${selectedGroup.name}"?`)) {
       try {
-        await conversationApi.leaveGroup(selectedGroup.id);
+        await conversationApi.leaveGroup(selectedGroup!.id);
         setShowGroupDetails(false);
         fetchGroups();
       } catch (error) {
@@ -96,6 +127,81 @@ export function GroupsPage() {
         alert("Rời nhóm thất bại!");
       }
     }
+  };
+
+  const handleRemoveMember = async (memberId: string, memberName: string) => {
+    if (!selectedGroup) return;
+    if (confirm(`Bạn có chắc chắn muốn kick "${memberName}" ra khỏi nhóm?`)) {
+      try {
+        await conversationApi.removeMember(selectedGroup!.id, memberId);
+        alert("Đã kick thành viên thành công!");
+        const members = await conversationApi.getMembers(selectedGroup!.id);
+      
+        if (members && members.length > 0) {
+          const membersWithProfiles = await Promise.all(
+            members.map(async (m: any) => {
+              const mId = m.userId || m.user_id || m.id;
+              try {
+                const profileReq = await authApi.getProfile(mId);
+                const profile = profileReq.data || profileReq;
+                return { ...m, name: profile.name || m.name, avatarUrl: profile.avatarUrl || m.avatarUrl };
+              } catch (e) {
+                return m;
+              }
+            })
+          );
+          setGroupMembers(membersWithProfiles);
+        } else {
+          setGroupMembers([]);
+        }
+      } catch (error) {
+        console.error("Lỗi kick thành viên:", error);
+        alert("Thao tác thất bại!");
+      }
+    }
+  };
+
+  const handleAddMember = async () => {
+    if (!selectedGroup || friendsToAdd.length === 0) return;
+    try {
+      setAddingMember(true);
+      await Promise.all(
+        friendsToAdd.map(id => conversationApi.addMember(selectedGroup!.id, id))
+      );
+      alert("Đã thêm thành viên thành công!");
+      setShowAddMemberModal(false);
+      setFriendsToAdd([]);
+      const members = await conversationApi.getMembers(selectedGroup!.id);
+      
+      if (members && members.length > 0) {
+        const membersWithProfiles = await Promise.all(
+          members.map(async (m: any) => {
+            const mId = m.userId || m.user_id || m.id;
+            try {
+              const profileReq = await authApi.getProfile(mId);
+              const profile = profileReq.data || profileReq;
+              return { ...m, name: profile.name || m.name, avatarUrl: profile.avatarUrl || m.avatarUrl };
+            } catch (e) {
+              return m;
+            }
+          })
+        );
+        setGroupMembers(membersWithProfiles);
+      } else {
+        setGroupMembers([]);
+      }
+    } catch (error) {
+      console.error("Lỗi thêm thành viên:", error);
+      alert("Thêm thành viên thất bại!");
+    } finally {
+      setAddingMember(false);
+    }
+  };
+
+  const toggleFriendToAdd = (id: string) => {
+    setFriendsToAdd((prev) =>
+      prev.includes(id) ? prev.filter((fId) => fId !== id) : [...prev, id]
+    );
   };
 
   const toggleFriendSelection = (id: string) => {
@@ -121,6 +227,7 @@ export function GroupsPage() {
 
   const getRoleLabel = (role: string) => {
     switch (role?.toLowerCase()) {
+      case "owner":
       case "admin":
         return "Quản trị viên";
       case "moderator":
@@ -128,6 +235,15 @@ export function GroupsPage() {
       default:
         return "Thành viên";
     }
+  };
+
+  const isCurrentUserAdmin = () => {
+    if (!currentUserId) return false;
+    return groupMembers.some(m => {
+      const mId = m.userId || m.user_id || m.id;
+      const role = (m.role || "").toUpperCase();
+      return mId === currentUserId && (role === "OWNER" || role === "ADMIN");
+    });
   };
 
   return (
@@ -314,6 +430,14 @@ export function GroupsPage() {
               <div>
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-lg font-bold text-white">Thành viên</h3>
+                  {isCurrentUserAdmin() && (
+                    <button
+                      onClick={() => setShowAddMemberModal(true)}
+                      className="text-cyan-400 hover:text-cyan-300 text-sm font-semibold flex items-center gap-1 bg-cyan-500/10 px-3 py-1.5 rounded-lg transition-colors"
+                    >
+                      <UserPlus className="w-4 h-4" /> Thêm
+                    </button>
+                  )}
                 </div>
                 {loadingMembers ? (
                   <div className="flex justify-center py-10">
@@ -338,6 +462,17 @@ export function GroupsPage() {
                             <span>{getRoleLabel(member.role)}</span>
                           </div>
                         </div>
+                        {currentUserId && 
+                         (member.userId || member.user_id || member.id) !== currentUserId && 
+                         isCurrentUserAdmin() && (
+                          <button
+                            onClick={() => handleRemoveMember((member.userId || member.user_id || member.id) as string, member.name || "thành viên")}
+                            title="Kick thành viên"
+                            className="w-8 h-8 rounded-lg flex items-center justify-center text-red-400/60 hover:text-red-400 hover:bg-red-500/10 transition-all"
+                          >
+                            <UserMinus className="w-4 h-4" />
+                          </button>
+                        )}
                       </div>
                     ))}
                   </div>
@@ -356,6 +491,78 @@ export function GroupsPage() {
                   </button>
                 </div>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Thêm Thành Viên */}
+      {showAddMemberModal && selectedGroup && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[60] p-4">
+          <div className="bg-slate-900/95 backdrop-blur-xl rounded-2xl border border-white/10 p-8 max-w-md w-full max-h-[90vh] flex flex-col shadow-2xl">
+            <div className="flex items-center justify-between mb-6 shrink-0 border-b border-white/10 pb-4">
+              <h2 className="text-2xl font-bold text-white">Thêm thành viên</h2>
+              <button
+                onClick={() => {
+                  setShowAddMemberModal(false);
+                  setFriendsToAdd([]);
+                }}
+                className="w-8 h-8 rounded-lg flex items-center justify-center text-white/60 hover:text-white hover:bg-white/10 transition-all"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            
+            <div className="flex-1 overflow-y-auto custom-scrollbar min-h-0 mb-6 space-y-4">
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-white/80 px-1 block">Chọn bạn bè</label>
+                {friends.filter(f => !groupMembers.some(m => (m.userId || m.user_id || m.id) === f.id)).length === 0 ? (
+                  <p className="text-white/40 text-sm">Không còn bạn bè nào để thêm.</p>
+                ) : (
+                  <div className="space-y-2 max-h-48 overflow-y-auto custom-scrollbar pr-2 border border-white/10 p-2 rounded-xl bg-slate-800/20">
+                    {friends.filter(f => !groupMembers.some(m => (m.userId || m.user_id || m.id) === f.id)).map((friend) => (
+                      <div
+                        key={friend.id}
+                        onClick={() => toggleFriendToAdd(friend.id)}
+                        className={`flex items-center gap-3 p-2 rounded-lg cursor-pointer transition-colors ${
+                          friendsToAdd.includes(friend.id) ? "bg-cyan-500/20 border border-cyan-500/50" : "hover:bg-slate-800/50 border border-transparent"
+                        }`}
+                      >
+                        <img
+                          src={friend.avatarUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${friend.id}`}
+                          alt={friend.name}
+                          className="w-8 h-8 rounded-full bg-slate-800"
+                        />
+                        <span className="text-white text-sm flex-1 truncate">{friend.name}</span>
+                        {friendsToAdd.includes(friend.id) && (
+                          <div className="w-4 h-4 rounded-full bg-cyan-500 flex items-center justify-center">
+                            <Check className="w-3 h-3 text-white" />
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="flex gap-3 pt-6 shrink-0 mt-6 border-t border-white/10">
+              <button
+                onClick={() => {
+                  setShowAddMemberModal(false);
+                  setFriendsToAdd([]);
+                }}
+                className="flex-1 px-4 py-3 rounded-xl bg-white/10 text-white font-semibold hover:bg-white/20 transition-all"
+              >
+                Hủy
+              </button>
+              <button
+                onClick={handleAddMember}
+                disabled={addingMember || friendsToAdd.length === 0}
+                className="flex-1 px-4 py-3 rounded-xl bg-gradient-to-br from-cyan-500 to-blue-500 text-white font-semibold hover:shadow-lg hover:shadow-cyan-500/50 transition-all disabled:opacity-50 flex items-center justify-center"
+              >
+                {addingMember ? <Loader2 className="w-5 h-5 animate-spin" /> : "Thêm"}
+              </button>
             </div>
           </div>
         </div>

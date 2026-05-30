@@ -1,13 +1,8 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   Search,
   MoreVertical,
-  Phone,
-  Video,
-  Smile,
-  Paperclip,
   Send,
-  Image as ImageIcon,
   CheckCheck,
   Circle,
   Plus,
@@ -26,6 +21,15 @@ import { toast } from "sonner";
 export function ChatDashboard() {
   const [conversations, setConversations] = useState<ConversationResponse[]>([]);
   const [selectedChat, setSelectedChat] = useState<ConversationResponse | null>(null);
+  const selectedChatRef = useRef<ConversationResponse | null>(null);
+  const messagesEndRef = useRef<HTMLDivElement | null>(null);
+  
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
+ 
+
   const [loading, setLoading] = useState(true);
   const [currentUser, setCurrentUser] = useState<any>(null);
   
@@ -33,6 +37,10 @@ export function ChatDashboard() {
   const [message, setMessage] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [showRightPanel, setShowRightPanel] = useState(true);
+
+   useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
 
   // Group Create Modal States
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -49,18 +57,38 @@ export function ChatDashboard() {
     // Lắng nghe tin nhắn mới
     const messageHandler = (newMsg: any) => {
       // Cập nhật lastMessage cho cuộc hội thoại trong danh sách
-      setConversations((prev) => 
-        prev.map((c) => 
-          c.id === newMsg.conversationId 
-            ? { ...c, lastMessage: newMsg.content, lastMessageTime: newMsg.createdAt }
-            : c
-        )
-      );
+      setConversations((prev) => {
+        const updated = prev.map((c) => {
+          if (c.id === newMsg.conversationId) {
+            const isSelected = selectedChatRef.current?.id === c.id;
+            const isMe = newMsg.senderId === localStorage.getItem("user_id");
+            return { 
+              ...c, 
+              lastMessage: newMsg.content, 
+              lastMessageTime: newMsg.createdAt,
+              unreadCount: (!isSelected && !isMe) ? (c.unreadCount || 0) + 1 : (c.unreadCount || 0)
+            };
+          }
+          return c;
+        });
+        
+        // Đưa đoạn chat có tin nhắn mới lên đầu
+        return updated.sort((a, b) => {
+          const timeA = new Date(a.lastMessageTime || 0).getTime();
+          const timeB = new Date(b.lastMessageTime || 0).getTime();
+          return timeB - timeA; // Giảm dần (mới nhất lên trên)
+        });
+      });
 
       // Nếu đang mở đúng đoạn chat này thì thêm tin nhắn vào danh sách
       setSelectedChat((currentChat) => {
         if (currentChat?.id === newMsg.conversationId) {
-          setMessages((prevMsg) => [...prevMsg, newMsg]);
+          setMessages((prevMsg) => {
+            // Kiểm tra tránh trùng lặp tin nhắn (do tự gửi và nhận lại qua SignalR)
+            const isExist = prevMsg.some((m) => m.id === newMsg.id);
+            if (isExist) return prevMsg;
+            return [...prevMsg, newMsg];
+          });
         }
         return currentChat;
       });
@@ -75,8 +103,19 @@ export function ChatDashboard() {
 
   // Tải danh sách tin nhắn khi đổi cuộc hội thoại
   useEffect(() => {
+    selectedChatRef.current = selectedChat;
     if (selectedChat) {
       fetchMessages(selectedChat.id);
+      
+      // Đánh dấu đã đọc ở local state
+      setConversations(prev => {
+        const updated = prev.map(c => c.id === selectedChat.id ? { ...c, unreadCount: 0 } : c);
+        const hasUnread = updated.some(c => c.unreadCount && c.unreadCount > 0);
+        if (!hasUnread) {
+          window.dispatchEvent(new Event("clearUnreadMessages"));
+        }
+        return updated;
+      });
     }
   }, [selectedChat]);
 
@@ -107,6 +146,37 @@ export function ChatDashboard() {
     try {
       const data = await conversationApi.getConversations();
       let convs = data || [];
+      const currentUserId = localStorage.getItem("user_id");
+
+      // Map tên và avatar cho hội thoại 1-1
+      if (currentUserId) {
+        convs = await Promise.all(convs.map(async (c: any) => {
+          // Chuẩn hóa isGroup từ type
+          c.isGroup = c.isGroup === true || c.type === "GROUP";
+
+          try {
+            const members = await conversationApi.getMembers(c.id);
+            const membersCount = members.length;
+            
+            if (!c.isGroup) {
+              const otherMember = members.find((m: any) => (m.userId || m.user_id || m.id) !== currentUserId);
+              const targetId = otherMember?.userId || otherMember?.user_id || otherMember?.id;
+              if (targetId) {
+                const profileReq = await authApi.getProfile(targetId).catch(() => null);
+                if (profileReq) {
+                  const profile = profileReq.data || profileReq;
+                  return { ...c, name: profile.name, avatarUrl: profile.avatarUrl, email: profile.email, membersCount };
+                }
+              }
+            } else {
+              return { ...c, membersCount };
+            }
+          } catch (e) {
+            console.error("Lỗi lấy thông tin conversation:", e);
+          }
+          return c;
+        }));
+      }
 
       // Lấy tin nhắn cuối cùng cho tất cả hội thoại
       if (convs.length > 0) {
@@ -125,6 +195,12 @@ export function ChatDashboard() {
       }
 
       setConversations(convs);
+      
+      // Tham gia các nhóm SignalR để nhận tin nhắn realtime
+      convs.forEach((c: any) => {
+        chatHubService.joinConversation(c.id);
+      });
+
       if (convs.length > 0 && !selectedChat) {
         setSelectedChat(convs[0]);
       }
@@ -138,7 +214,13 @@ export function ChatDashboard() {
   const fetchFriends = async () => {
     try {
       const data = await friendshipApi.getFriends();
-      setFriends(data || []);
+      const ids = data || [];
+      const stringIds = ids.map((item: any) => typeof item === "string" ? item : item.id);
+      const profiles = await Promise.all(
+        stringIds.map(id => authApi.getProfile(id).catch(() => null))
+      );
+      const friendsProfiles = profiles.filter(p => p !== null).map(p => p.data || p);
+      setFriends(friendsProfiles);
     } catch (error) {
       console.error("Lỗi tải bạn bè:", error);
     }
@@ -150,16 +232,24 @@ export function ChatDashboard() {
       setMessage(""); // Clear input
       try {
         const sentMsg = await messageApi.sendMessage(selectedChat.id, msgContent);
-        // Gắn thêm vào danh sách hiện tại
-        setMessages((prev) => [...prev, sentMsg]);
+        // Gắn thêm vào danh sách hiện tại nếu chưa có (SignalR có thể đã đẩy về trước)
+        setMessages((prev) => {
+          if (prev.some((m) => m.id === sentMsg.id)) return prev;
+          return [...prev, sentMsg];
+        });
         // Update danh sách hội thoại
-        setConversations((prev) => 
-          prev.map((c) => 
+        setConversations((prev) => {
+          const updated = prev.map((c) => 
             c.id === selectedChat.id 
               ? { ...c, lastMessage: sentMsg.content, lastMessageTime: sentMsg.createdAt }
               : c
-          )
-        );
+          );
+          return updated.sort((a, b) => {
+            const timeA = new Date(a.lastMessageTime || 0).getTime();
+            const timeB = new Date(b.lastMessageTime || 0).getTime();
+            return timeB - timeA;
+          });
+        });
       } catch (err) {
         console.error("Lỗi gửi tin nhắn:", err);
         toast.error("Không thể gửi tin nhắn");
@@ -199,7 +289,7 @@ export function ChatDashboard() {
   };
 
   const filteredChats = conversations.filter((chat) =>
-    chat.name?.toLowerCase().includes(searchQuery.toLowerCase())
+    (chat.name || "").toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   return (
@@ -266,6 +356,9 @@ export function ChatDashboard() {
                     alt={chat.name}
                     className="w-12 h-12 rounded-full bg-slate-800"
                   />
+                  {chat.unreadCount && chat.unreadCount > 0 ? (
+                    <span className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-red-500 rounded-full border-2 border-slate-900"></span>
+                  ) : null}
                 </div>
                 <div className="flex-1 min-w-0 text-left">
                   <div className="flex items-center justify-between mb-1">
@@ -315,12 +408,6 @@ export function ChatDashboard() {
             </div>
 
             <div className="flex items-center gap-2">
-              <button className="w-10 h-10 rounded-xl flex items-center justify-center text-white/60 hover:text-white hover:bg-white/10 transition-all">
-                <Phone className="w-5 h-5" />
-              </button>
-              <button className="w-10 h-10 rounded-xl flex items-center justify-center text-white/60 hover:text-white hover:bg-white/10 transition-all">
-                <Video className="w-5 h-5" />
-              </button>
               <button
                 onClick={() => setShowRightPanel(!showRightPanel)}
                 className="w-10 h-10 rounded-xl flex items-center justify-center text-white/60 hover:text-white hover:bg-white/10 transition-all"
@@ -361,20 +448,12 @@ export function ChatDashboard() {
               </div>
             );
           })}
+          <div ref={messagesEndRef} />
         </div>
 
           {/* Chat Input */}
           <div className="p-4 bg-slate-950/30 backdrop-blur-xl border-t border-white/10">
             <div className="flex items-end gap-2">
-              <button className="w-10 h-10 rounded-xl flex items-center justify-center text-white/60 hover:text-white hover:bg-white/10 transition-all flex-shrink-0">
-                <Smile className="w-5 h-5" />
-              </button>
-              <button className="w-10 h-10 rounded-xl flex items-center justify-center text-white/60 hover:text-white hover:bg-white/10 transition-all flex-shrink-0">
-                <Paperclip className="w-5 h-5" />
-              </button>
-              <button className="w-10 h-10 rounded-xl flex items-center justify-center text-white/60 hover:text-white hover:bg-white/10 transition-all flex-shrink-0">
-                <ImageIcon className="w-5 h-5" />
-              </button>
               <div className="flex-1">
                 <textarea
                   value={message}
@@ -433,7 +512,7 @@ export function ChatDashboard() {
                   <div className="space-y-2 text-sm">
                     <div className="flex justify-between">
                       <span className="text-white/60">Email</span>
-                      <span className="text-white">user@example.com</span>
+                      <span className="text-white">{selectedChat.email || "Không có email"}</span>
                     </div>
                   </div>
                 </div>

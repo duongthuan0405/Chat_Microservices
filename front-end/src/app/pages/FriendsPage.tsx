@@ -1,10 +1,14 @@
-import { useState, useEffect } from "react";
-import { Search, Check, X, UserMinus, Trash2, Users, Loader2 } from "lucide-react";
+import { Search, Check, X, UserMinus, Trash2, Users, Loader2, MessageCircle } from "lucide-react";
 import { friendshipApi, FriendResponse } from "../../api/friendshipApi";
 import { userApi } from "../../api/userApi";
+import { authApi } from "../../api/authApi";
+import { conversationApi } from "../../api/conversationApi";
 import { toast } from "sonner";
+import { useNavigate } from "react-router";
+import { useEffect, useState } from "react";
 
 export function FriendsPage() {
+  const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
   const [requests, setRequests] = useState<FriendResponse[]>([]);
   const [friends, setFriends] = useState<FriendResponse[]>([]);
@@ -15,6 +19,7 @@ export function FriendsPage() {
 
   const [showUnfriendModal, setShowUnfriendModal] = useState(false);
   const [selectedFriend, setSelectedFriend] = useState<FriendResponse | null>(null);
+  const [friendDetail, setFriendDetail] = useState<FriendResponse | null>(null);
 
   useEffect(() => {
     fetchData();
@@ -23,12 +28,33 @@ export function FriendsPage() {
   const fetchData = async () => {
     try {
       setLoading(true);
-      const [friendsData, requestsData] = await Promise.all([
+      const [friendsIds, requestsIds] = await Promise.all([
         friendshipApi.getFriends(),
         friendshipApi.getIncomingRequests()
       ]);
-      setFriends(friendsData || []);
-      setRequests(requestsData || []);
+
+      // Map string IDs to Profile objects
+      const fetchProfiles = async (ids: any[]) => {
+        if (!ids || !Array.isArray(ids)) return [];
+        // Extract string IDs (handle case if backend changes to return objects later)
+        const stringIds = ids.map(item => typeof item === "string" ? item : item.id);
+        
+        const profiles = await Promise.all(
+          stringIds.map(id => authApi.getProfile(id).catch(() => null))
+        );
+        
+        return profiles
+          .filter(p => p !== null)
+          .map(p => p.data || p) as FriendResponse[];
+      };
+
+      const [friendsProfiles, requestsProfiles] = await Promise.all([
+        fetchProfiles(friendsIds),
+        fetchProfiles(requestsIds)
+      ]);
+
+      setFriends(friendsProfiles);
+      setRequests(requestsProfiles);
     } catch (error) {
       console.error("Lỗi khi tải dữ liệu bạn bè:", error);
     } finally {
@@ -74,6 +100,12 @@ export function FriendsPage() {
   const handleAcceptRequest = async (id: string) => {
     try {
       await friendshipApi.acceptRequest(id);
+      
+      // Tự động tạo phòng chat 1-1 ngay khi thành bạn bè
+      await conversationApi.createDirect(id).catch(err => {
+        console.warn("Lỗi khi tự động tạo phòng chat:", err);
+      });
+
       toast.success("Đã chấp nhận lời mời kết bạn");
       fetchData();
     } catch (error) {
@@ -110,6 +142,16 @@ export function FriendsPage() {
         console.error("Lỗi xóa bạn:", error);
         toast.error("Hủy kết bạn thất bại");
       }
+    }
+  };
+
+  const handleMessageFriend = async (friend: FriendResponse) => {
+    try {
+      await conversationApi.createDirect(friend.id);
+      navigate("/app");
+    } catch (error) {
+      console.error("Lỗi tạo/chuyển đến tin nhắn:", error);
+      toast.error("Không thể mở cuộc trò chuyện");
     }
   };
 
@@ -253,32 +295,21 @@ export function FriendsPage() {
                   <p className="text-white/60 mb-4">Bạn chưa kết bạn với ai hoặc không tìm thấy kết quả</p>
                 </div>
               ) : (
-                <div className="space-y-2">
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
                   {filteredFriends.map((friend) => (
                     <div
                       key={friend.id}
-                      className="flex items-center gap-4 p-4 bg-slate-800/30 rounded-xl hover:bg-slate-800/50 transition-colors"
+                      onClick={() => setFriendDetail(friend)}
+                      className="flex flex-col items-center p-5 bg-slate-800/30 rounded-2xl hover:bg-slate-800/60 transition-all cursor-pointer border border-white/5 hover:border-cyan-500/30 group hover:-translate-y-1"
                     >
-                      <div className="relative">
+                      <div className="relative mb-3">
                         <img
                           src={friend.avatarUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${friend.id}`}
                           alt={friend.name}
-                          className="w-14 h-14 rounded-full bg-slate-800"
+                          className="w-20 h-20 rounded-full bg-slate-800 object-cover ring-2 ring-white/10 group-hover:ring-cyan-500/50 transition-all"
                         />
                       </div>
-                      <div className="flex-1 min-w-0">
-                        <h3 className="text-white font-semibold mb-1">{friend.name}</h3>
-                        <p className="text-white/60 text-sm">{friend.email}</p>
-                      </div>
-                      <div className="flex gap-2">
-                        <button
-                          onClick={() => handleUnfriendClick(friend)}
-                          className="px-4 py-2 rounded-lg border border-red-500/30 text-red-400 font-medium hover:bg-red-500/10 hover:border-red-500/50 transition-all flex items-center gap-2"
-                        >
-                          <UserMinus className="w-4 h-4" />
-                          Hủy kết bạn
-                        </button>
-                      </div>
+                      <h3 className="text-white font-semibold text-center w-full truncate px-2">{friend.name || "Người dùng"}</h3>
                     </div>
                   ))}
                 </div>
@@ -325,6 +356,53 @@ export function FriendsPage() {
                 className="flex-1 px-4 py-3 rounded-xl bg-red-500 text-white font-semibold hover:bg-red-600 transition-all"
               >
                 Xác nhận
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL CHI TIẾT BẠN BÈ */}
+      {friendDetail && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={() => setFriendDetail(null)}>
+          <div 
+            className="bg-slate-900/95 backdrop-blur-xl rounded-2xl border border-white/10 p-8 max-w-sm w-full relative"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button 
+              onClick={() => setFriendDetail(null)}
+              className="absolute top-4 right-4 p-2 rounded-full hover:bg-white/10 text-white/60 hover:text-white transition-colors"
+            >
+              <X className="w-5 h-5" />
+            </button>
+            
+            <div className="flex flex-col items-center mb-6">
+              <img
+                src={friendDetail.avatarUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${friendDetail.id}`}
+                alt={friendDetail.name}
+                className="w-28 h-28 rounded-full bg-slate-800 object-cover ring-4 ring-cyan-500/20 mb-4"
+              />
+              <h2 className="text-2xl font-bold text-white mb-1 text-center">{friendDetail.name}</h2>
+              <p className="text-white/60 text-center">{friendDetail.email}</p>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                onClick={() => handleMessageFriend(friendDetail)}
+                className="w-full py-3 rounded-xl bg-gradient-to-br from-cyan-500 to-blue-500 text-white font-medium hover:shadow-lg hover:shadow-cyan-500/50 transition-all flex items-center justify-center gap-2"
+              >
+                <MessageCircle className="w-5 h-5" />
+                Nhắn tin
+              </button>
+              <button
+                onClick={() => {
+                  setFriendDetail(null);
+                  handleUnfriendClick(friendDetail);
+                }}
+                className="w-full py-3 rounded-xl border border-red-500/30 text-red-400 font-medium hover:bg-red-500/10 hover:border-red-500/50 transition-all flex items-center justify-center gap-2"
+              >
+                <UserMinus className="w-5 h-5" />
+                Hủy kết bạn
               </button>
             </div>
           </div>
