@@ -6,7 +6,7 @@ metadata:
   labels:
     app: chat-service
 spec:
-  replicas: 2
+  replicas: 1
   selector:
     matchLabels:
       app: chat-service
@@ -15,6 +15,8 @@ spec:
       labels:
         app: chat-service
     spec:
+      imagePullSecrets:
+        - name: acr-secret
       containers:
         - name: chat-service
           image: ${DOCKER_USERNAME}/${DOCKER_IMAGE}
@@ -24,24 +26,9 @@ spec:
           env:
             - name: ASPNETCORE_ENVIRONMENT
               value: Production
-            - name: DB_HOST
-              value: "${DB_HOST}"
-            - name: DB_PORT
-              value: "${DB_PORT}"
-            - name: DB_USERNAME
-              value: "${DB_USERNAME}"
-            - name: DB_PASSWORD
-              value: "${DB_PASSWORD}"
-            - name: DB_DATABASE
-              value: "${DB_DATABASE}"
-            - name: RABBITMQ_HOST
-              value: "${RABBITMQ_HOST}"
-            - name: RABBITMQ_PORT
-              value: "${RABBITMQ_PORT}"
-            - name: RABBITMQ_USERNAME
-              value: "${RABBITMQ_USERNAME}"
-            - name: RABBITMQ_PASSWORD
-              value: "${RABBITMQ_PASSWORD}"
+          envFrom:
+            - secretRef:
+                name: chat-service-secret
           resources:
             limits:
               cpu: "500m"

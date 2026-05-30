@@ -1,0 +1,149 @@
+name: Conversation Service - Push to main CI/CD
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'services/conversation-service/**'
+      - '.github/workflows/conversation-service-push-main.yml'
+      - 'k8s/deployments/conversation-service/**'
+  workflow_dispatch:
+    inputs:
+      imageTag:
+        description: Docker image tag
+        required: true
+
+jobs:
+  build-publish:
+    name: Build, Login to Azure, and Publish to ACR
+    runs-on: ubuntu-latest
+    environment: ConversationServiceProduction
+    defaults:
+      run:
+        working-directory: ./services/conversation-service
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.25.x'
+          cache: true
+          cache-dependency-path: services/conversation-service/go.sum
+
+      - name: Download Go Modules
+        run: go mod download
+
+      - name: Verify Go Modules
+        run: go mod verify
+
+      - name: Build Project
+        run: go build ./...
+
+      - name: Run Tests
+        run: go test ./...
+
+      - name: Setup Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Azure Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ secrets.AZURE_ACR_LOGIN_SERVER }}
+          username: ${{ secrets.AZURE_ACR_USERNAME }}
+          password: ${{ secrets.AZURE_ACR_PASSWORD }}
+
+      - name: Extract Docker Metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ secrets.AZURE_ACR_LOGIN_SERVER }}/conversation-service
+          tags: |
+            type=sha,format=long
+            type=raw,value=latest
+            type=raw,value=${{ github.event.inputs.imageTag }},enable=${{ github.event_name == 'workflow_dispatch' }}
+
+      - name: Build and Push Docker Image
+        uses: docker/build-push-action@v6
+        with:
+          context: services/conversation-service/
+          file: services/conversation-service/Dockerfile
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      # copy deployment manifests to VPS
+      - name: Copy Manifests to VPS
+        uses: appleboy/scp-action@master
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USERNAME }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          source: "k8s/deployments/conversation-service/*.yaml"
+          target: /tmp/deploy-manifests-conversation-${{ github.run_id }}
+
+      - name: SSH into vps
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USERNAME }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          script: |
+            DEPLOY_DIR="/tmp/deploy-manifests-conversation-${{ github.run_id }}"
+            trap "rm -rf $DEPLOY_DIR" EXIT
+
+            podman login -u ${{ secrets.AZURE_ACR_USERNAME }} -p ${{ secrets.AZURE_ACR_PASSWORD }} ${{ secrets.AZURE_ACR_LOGIN_SERVER }}
+            podman pull ${{ secrets.AZURE_ACR_LOGIN_SERVER }}/conversation-service:latest
+
+            set -e
+
+            if [ -f /etc/rancher/k3s/k3s.yaml ]; then
+              export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
+            fi
+
+            kubectl create secret docker-registry acr-secret \
+              --docker-server=${{ secrets.AZURE_ACR_LOGIN_SERVER }} \
+              --docker-username='${{ secrets.AZURE_ACR_USERNAME }}' \
+              --docker-password='${{ secrets.AZURE_ACR_PASSWORD }}' \
+              --dry-run=client -o yaml | kubectl apply -f -
+
+            kubectl create secret generic conversation-service-secret \
+              --from-literal=SERVER_PORT='${{ secrets.APP_CONTAINER_PORT }}' \
+              --from-literal=POSTGRES_DSN='${{ secrets.POSTGRES_DSN }}' \
+              --from-literal=USER_SERVICE_BASE_URL='${{ secrets.USER_SERVICE_BASE_URL }}' \
+              --from-literal=USER_SERVICE_REQUIRED='${{ secrets.USER_SERVICE_REQUIRED }}' \
+              --from-literal=RABBITMQ_URL='${{ secrets.RABBITMQ_URL }}' \
+              --from-literal=RABBITMQ_REQUIRED='${{ secrets.RABBITMQ_REQUIRED }}' \
+              --from-literal=ADDED_TO_GROUP_CHAT_EXCHANGE='${{ secrets.ADDED_TO_GROUP_CHAT_EXCHANGE }}' \
+              --from-literal=SHUTDOWN_TIMEOUT_SECONDS='${{ secrets.SHUTDOWN_TIMEOUT_SECONDS }}' \
+              --from-literal=EXTERNAL_REQUEST_TIMEOUT_SECONDS='${{ secrets.EXTERNAL_REQUEST_TIMEOUT_SECONDS }}' \
+              --dry-run=client -o yaml | kubectl apply -f -
+
+            MANIFEST_PATH="$DEPLOY_DIR/k8s/deployments/conversation-service/conversation-service-deployment.yaml"
+            sed -i "s|\${DOCKER_USERNAME}/\${DOCKER_IMAGE}|${{ secrets.AZURE_ACR_LOGIN_SERVER }}/conversation-service:latest|g" $MANIFEST_PATH
+            sed -i "s|\${APP_CONTAINER_PORT}|${{ secrets.APP_CONTAINER_PORT }}|g" $MANIFEST_PATH
+
+            SVC_MANIFEST_PATH="$DEPLOY_DIR/k8s/deployments/conversation-service/conversation-service-service.yaml"
+            sed -i "s|\${APP_PORT}|${{ secrets.APP_PORT }}|g" $SVC_MANIFEST_PATH
+            sed -i "s|\${APP_CONTAINER_PORT}|${{ secrets.APP_CONTAINER_PORT }}|g" $SVC_MANIFEST_PATH
+
+            JOB_MANIFEST_PATH="$DEPLOY_DIR/k8s/deployments/conversation-service/conversation-service-migration-job.yaml"
+            sed -i "s|\${DOCKER_USERNAME}/\${DOCKER_IMAGE}|${{ secrets.AZURE_ACR_LOGIN_SERVER }}/conversation-service:latest|g" $JOB_MANIFEST_PATH
+
+            kubectl delete job conversation-service-migration-job -n default --ignore-not-found=true
+
+            kubectl apply -f $JOB_MANIFEST_PATH
+            echo "Waiting for conversation-service migration job to complete..."
+            kubectl wait --for=condition=complete job/conversation-service-migration-job -n default --timeout=120s
+
+            kubectl apply -f $MANIFEST_PATH
+            kubectl apply -f $SVC_MANIFEST_PATH
+
+            kubectl rollout status deployment/conversation-service -n default || true
+            kubectl get pods -l app=conversation-service -n default
+            kubectl get svc conversation-service -n default

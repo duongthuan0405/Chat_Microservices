@@ -19,6 +19,8 @@ jobs:
     name: Build, Login to Azure, and Publish to ACR
     runs-on: ubuntu-latest
     environment: AuthServiceProduction
+    env:
+      DEPLOY_DIR: /tmp/deploy-manifests-auth-${{ github.run_id }}
     defaults:
       run:
         working-directory: ./services/auth-service/
@@ -57,7 +59,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ${{ secrets.AZURE_ACR_LOGIN_SERVER }}/auth-service
+          images: ${{ secrets.AZURE_ACR_LOGIN_SERVER }}/${{ secrets.DOCKER_IMAGE }}
           tags: |
             type=sha,format=long
             type=raw,value=latest
@@ -73,3 +75,59 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+      # copy deployment manifests to VPS
+      - name: Copy Manifests to VPS
+        uses: appleboy/scp-action@master
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USERNAME }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          source: "k8s/deployments/auth-service/*.yaml"
+          target: ${{ env.DEPLOY_DIR }}
+      
+      - name: SSH into vps
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USERNAME }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          script: |
+            DEPLOY_DIR="${{ env.DEPLOY_DIR }}"
+            trap "rm -rf $DEPLOY_DIR" EXIT
+            
+            # Pull the latest image
+            podman login -u ${{ secrets.AZURE_ACR_USERNAME }} -p ${{ secrets.AZURE_ACR_PASSWORD }} ${{ secrets.AZURE_ACR_LOGIN_SERVER }}
+            podman pull ${{ secrets.AZURE_ACR_LOGIN_SERVER }}/${{ secrets.DOCKER_IMAGE }}:latest
+
+            set -e
+            # Ensure kubectl can access the cluster (k3s fallback)
+            if [ -f /etc/rancher/k3s/k3s.yaml ]; then
+              export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
+            fi
+
+            # Create/update imagePullSecret for ACR
+            kubectl create secret docker-registry acr-secret \
+              --docker-server=${{ secrets.AZURE_ACR_LOGIN_SERVER }} \
+              --docker-username='${{ secrets.AZURE_ACR_USERNAME }}' \
+              --docker-password='${{ secrets.AZURE_ACR_PASSWORD }}' \
+              --dry-run=client -o yaml | kubectl apply -f -
+
+            # Create/update app secrets
+            kubectl create secret generic auth-service-secret \
+              --from-literal=DEFAULT_CONNECTION_STRING='${{ secrets.AUTH_CONNECTION_STRING }}' \
+              --from-literal=JWT_AUDIENCE='${{ secrets.JWT_AUDIENCE }}' \
+              --from-literal=JWT_ISSUER='${{ secrets.JWT_ISSUER }}' \
+              --from-literal=JWT_SECRET='${{ secrets.JWT_SECRET }}' \
+              --dry-run=client -o yaml | kubectl apply -f -
+
+            # Replace image tag in deployment manifest
+            sed -i "s|image: .*$|image: ${{ secrets.AZURE_ACR_LOGIN_SERVER }}/${{ secrets.DOCKER_IMAGE }}:latest|g" $DEPLOY_DIR/k8s/deployments/auth-service/auth-service-deployment.yaml
+
+            # Apply Service and Deployment manifests copied to VPS
+            kubectl apply -f $DEPLOY_DIR/k8s/deployments/auth-service/auth-service-deployment.yaml
+            kubectl apply -f $DEPLOY_DIR/k8s/deployments/auth-service/auth-service-service.yaml
+
+            # Show status
+            kubectl rollout status deployment/auth-service -n default || true
+            kubectl get pods -l app=auth-service -n default

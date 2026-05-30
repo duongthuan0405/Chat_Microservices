@@ -1,50 +1,47 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: notification-service
+  name: friendship-service
   namespace: default
   labels:
-    app: notification-service
+    app: friendship-service
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: notification-service
+      app: friendship-service
   template:
     metadata:
       labels:
-        app: notification-service
+        app: friendship-service
     spec:
       imagePullSecrets:
         - name: acr-secret
       containers:
-        - name: notification-service
+        - name: friendship-service
           image: ${DOCKER_USERNAME}/${DOCKER_IMAGE}
           imagePullPolicy: Always
           ports:
-            - containerPort: ${APP_CONTAINER_PORT}
-          env:
-            - name: ASPNETCORE_ENVIRONMENT
-              value: Production
+            - containerPort: 8081
           envFrom:
             - secretRef:
-                name: notification-service-secret
+                name: friendship-service-secret
           resources:
             limits:
-              cpu: "500m"
-              memory: "512Mi"
-            requests:
-              cpu: "250m"
+              cpu: "300m"
               memory: "256Mi"
+            requests:
+              cpu: "50m"
+              memory: "64Mi"
           readinessProbe:
             httpGet:
-              path: /ready
-              port: ${APP_CONTAINER_PORT}
+              path: /health
+              port: 8081
             initialDelaySeconds: 5
             periodSeconds: 10
           livenessProbe:
             httpGet:
-              path: /live
-              port: ${APP_CONTAINER_PORT}
+              path: /health
+              port: 8081
             initialDelaySeconds: 15
             periodSeconds: 60

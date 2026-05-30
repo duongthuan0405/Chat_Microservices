@@ -1,7 +1,7 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: notification-service-migration-job
+  name: conversation-service-migration-job
   namespace: default
 spec:
   template:
@@ -9,15 +9,13 @@ spec:
       imagePullSecrets:
         - name: acr-secret
       containers:
-        - name: notification-service-migration
+        - name: conversation-service-migration
           image: ${DOCKER_USERNAME}/${DOCKER_IMAGE}
           imagePullPolicy: Always
-          args: ["--migrate"]
-          env:
-            - name: ASPNETCORE_ENVIRONMENT
-              value: Production
+          command: ["/app/conversation-migrate"]
+          args: ["up"]
           envFrom:
             - secretRef:
-                name: notification-service-secret
+                name: conversation-service-secret
       restartPolicy: OnFailure
   backoffLimit: 3

@@ -1,4 +1,8 @@
+using System;
 using System.Collections.Generic;
+using System.Net.Http;
+using System.Net.Http.Json;
+using System.Text.Json.Serialization;
 using System.Threading;
 using System.Threading.Tasks;
 using ChatService.Application.ExternalServices;
@@ -7,22 +11,61 @@ namespace ChatService.Infrastructure.ExternalServices;
 
 public class ConversationServiceClient : IConversationServiceClient
 {
-    public Task<bool> IsMemberAsync(Guid conversationId, Guid userId, CancellationToken cancellationToken = default)
+    private readonly HttpClient _httpClient;
+
+    public ConversationServiceClient(HttpClient httpClient)
     {
-        // Placeholder implementation: always allow for development/testing.
-        // Will be replaced with actual call to group-service.
-        return Task.FromResult(true);
+        _httpClient = httpClient;
     }
 
-    public Task<List<Guid>> GetMemberIdsAsync(Guid conversationId, CancellationToken cancellationToken = default)
+    public async Task<bool> IsMemberAsync(Guid conversationId, Guid userId, CancellationToken cancellationToken = default)
     {
-        // Placeholder implementation: returns mock list of users who belong to the conversation.
-        // In real environment, this will call the group-service API.
-        var mockMembers = new List<Guid>
+        var response = await _httpClient.GetAsync($"/internal/conversations/{conversationId}/members/{userId}/exists", cancellationToken);
+        if (!response.IsSuccessStatusCode) return false;
+
+        var result = await response.Content.ReadFromJsonAsync<ApiResponse<IsMemberData>>(cancellationToken: cancellationToken);
+        return result?.Data?.IsMember ?? false;
+    }
+
+    public async Task<List<Guid>> GetMemberIdsAsync(Guid conversationId, CancellationToken cancellationToken = default)
+    {
+        var response = await _httpClient.GetAsync($"/internal/conversations/{conversationId}/members", cancellationToken);
+        if (!response.IsSuccessStatusCode) return new List<Guid>();
+
+        var result = await response.Content.ReadFromJsonAsync<ApiResponse<MemberIdsData>>(cancellationToken: cancellationToken);
+        
+        var guidList = new List<Guid>();
+        if (result?.Data?.MemberIds != null)
         {
-            Guid.Parse("3fa85f64-5717-4562-b3fc-2c963f66afa6"), // Swagger default User 1
-            Guid.Parse("7fa85f64-5717-4562-b3fc-2c963f66afb7")  // Swagger default User 2
-        };
-        return Task.FromResult(mockMembers);
+            foreach (var idStr in result.Data.MemberIds)
+            {
+                if (Guid.TryParse(idStr, out var g))
+                {
+                    guidList.Add(g);
+                }
+            }
+        }
+        return guidList;
+    }
+
+    private class ApiResponse<T>
+    {
+        [JsonPropertyName("success")]
+        public bool Success { get; set; }
+
+        [JsonPropertyName("data")]
+        public T Data { get; set; }
+    }
+
+    private class IsMemberData
+    {
+        [JsonPropertyName("isMember")]
+        public bool IsMember { get; set; }
+    }
+
+    private class MemberIdsData
+    {
+        [JsonPropertyName("memberIds")]
+        public List<string> MemberIds { get; set; }
     }
 }
