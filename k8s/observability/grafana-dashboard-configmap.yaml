@@ -51,7 +51,7 @@ data:
           "gridPos": { "x": 12, "y": 0, "w": 12, "h": 8 },
           "targets": [
             {
-              "expr": "sum(rate(http_requests_received_total{code=~\"4..|5..\",endpoint!~\"/(ready|live|health|metrics)\"}[5m])) by (service) / sum(rate(http_requests_received_total{endpoint!~\"/(ready|live|health|metrics)\"}[5m])) by (service) or sum(rate(chat_microservice_http_requests_total{status=~\"4..|5..\",route!~\"/(ready|live|health|metrics)\"}[5m])) by (service) / sum(rate(chat_microservice_http_requests_total{route!~\"/(ready|live|health|metrics)\"}[5m])) by (service)",
+              "expr": "sum(rate(http_requests_received_total{code=~\"4..|5..\",endpoint!~\"/(ready|live|health|metrics)\"}[5m])) by (service) / sum(rate(http_requests_received_total{endpoint!~\"/(ready|live|health|metrics)\"}[5m])) by (service) or sum(rate(chat_microservice_http_requests_total{status=~\"4..|5..\",route!~\"/(ready|live|health|metrics)\"}[5m])) by (service) / sum(rate(chat_microservice_http_requests_total{route!~\"/(ready|live|health|metrics)\"}[5m])) by (service) / 100",
               "legendFormat": "{{service}}"
             }
           ],
