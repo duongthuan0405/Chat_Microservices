@@ -25,6 +25,7 @@ func (h *ConversationHandler) RegisterRoutes(r chi.Router) {
 		r.Post("/direct", h.CreateDirectConversation)
 		r.Post("/groups", h.CreateGroupConversation)
 		r.Get("/", h.ListMyConversations)
+		r.Get("/search", h.SearchConversations)
 		r.Get("/{conversationId}", h.GetConversationDetail)
 		r.Get("/{conversationId}/members", h.ListMembers)
 		r.Post("/{conversationId}/members", h.AddMember)
@@ -70,6 +71,19 @@ func (h *ConversationHandler) CreateGroupConversation(w http.ResponseWriter, r *
 
 func (h *ConversationHandler) ListMyConversations(w http.ResponseWriter, r *http.Request) {
 	data, err := h.usecase.ListMyConversations(r.Context(), CurrentUserID(r))
+	if err != nil {
+		WriteError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	WriteSuccess(w, http.StatusOK, "", data)
+}
+
+func (h *ConversationHandler) SearchConversations(w http.ResponseWriter, r *http.Request) {
+	keyword := r.URL.Query().Get("q")
+	conversationType := r.URL.Query().Get("type")
+
+	data, err := h.usecase.SearchConversations(r.Context(), CurrentUserID(r), keyword, conversationType)
 	if err != nil {
 		WriteError(w, http.StatusBadRequest, err.Error())
 		return
