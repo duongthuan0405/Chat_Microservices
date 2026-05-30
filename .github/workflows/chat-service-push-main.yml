@@ -95,7 +95,7 @@ jobs:
             
             # Pull the latest image
             podman login -u ${{ secrets.AZURE_ACR_USERNAME }} -p ${{ secrets.AZURE_ACR_PASSWORD }} ${{ secrets.AZURE_ACR_LOGIN_SERVER }}
-            podman pull ${{ secrets.AZURE_ACR_LOGIN_SERVER }}/${{ secrets.DOCKER_IMAGE }}:latest
+            podman pull ${{ secrets.AZURE_ACR_LOGIN_SERVER }}/${{ secrets.DOCKER_IMAGE }}:sha-${{ github.sha }}
 
             set -e
             # Ensure kubectl can access the cluster (k3s fallback)
@@ -126,7 +126,7 @@ jobs:
 
             # Replace ONLY the non-secret metadata (Image Tag and Port)
             MANIFEST_PATH="$DEPLOY_DIR/k8s/deployments/chat-service/chat-service-deployment.yaml"
-            sed -i "s|\${DOCKER_USERNAME}/\${DOCKER_IMAGE}|${{ secrets.AZURE_ACR_LOGIN_SERVER }}/${{ secrets.DOCKER_IMAGE }}:latest|g" $MANIFEST_PATH
+            sed -i "s|\${DOCKER_USERNAME}/\${DOCKER_IMAGE}|${{ secrets.AZURE_ACR_LOGIN_SERVER }}/${{ secrets.DOCKER_IMAGE }}:sha-${{ github.sha }}|g" $MANIFEST_PATH
             sed -i "s|\${APP_CONTAINER_PORT}|${{secrets.APP_CONTAINER_PORT}}|g" $MANIFEST_PATH
 
             SVC_MANIFEST_PATH="$DEPLOY_DIR/k8s/deployments/chat-service/chat-service-service.yaml"
@@ -134,7 +134,7 @@ jobs:
             sed -i "s|\${APP_CONTAINER_PORT}|${{secrets.APP_CONTAINER_PORT}}|g" $SVC_MANIFEST_PATH
 
             JOB_MANIFEST_PATH="$DEPLOY_DIR/k8s/deployments/chat-service/chat-service-migration-job.yaml"
-            sed -i "s|\${DOCKER_USERNAME}/\${DOCKER_IMAGE}|${{ secrets.AZURE_ACR_LOGIN_SERVER }}/${{ secrets.DOCKER_IMAGE }}:latest|g" $JOB_MANIFEST_PATH
+            sed -i "s|\${DOCKER_USERNAME}/\${DOCKER_IMAGE}|${{ secrets.AZURE_ACR_LOGIN_SERVER }}/${{ secrets.DOCKER_IMAGE }}:sha-${{ github.sha }}|g" $JOB_MANIFEST_PATH
 
             # Clean up old migration job if it exists
             kubectl delete job chat-service-migration-job -n default --ignore-not-found=true
@@ -147,9 +147,6 @@ jobs:
             # Apply Service and Deployment manifests copied to VPS
             kubectl apply -f $MANIFEST_PATH
             kubectl apply -f $SVC_MANIFEST_PATH
-
-            # Force Kubernetes to restart the pods to pull the newly updated :latest image
-            kubectl rollout restart deployment/chat-service -n default
 
             # Show status
             kubectl rollout status deployment/chat-service -n default || true
