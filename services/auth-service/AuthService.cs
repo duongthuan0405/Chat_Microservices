@@ -240,4 +240,21 @@ public sealed class AuthenticationService
     {
         return email.Trim();
     }
+
+    // find user by name include the string
+    public async Task<List<UserProfileResponse>> SearchUsersAsync(string query)
+    {
+        if (string.IsNullOrWhiteSpace(query))
+        {
+            throw new ArgumentException("Search query is required.");
+        }
+
+        var normalizedQuery = NormalizeEmail(query);
+
+        // Perform a case-insensitive search for users whose name or email contains the query string
+        var accounts = await db.Users
+            .Where(u => EF.Functions.Like(u.Name.ToLower(), $"%{normalizedQuery.ToLower()}%") || EF.Functions.Like(u.Email.ToLower(), $"%{normalizedQuery.ToLower()}%"))
+            .ToListAsync();
+        return [.. accounts.Select(MapToProfileResponse)];
+    }
 }
