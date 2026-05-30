@@ -36,6 +36,10 @@ public class Program
         builder.Services.AddMiddlewares();
 
         var app = builder.Build();
+        app.UseHttpMetrics(options =>
+{
+    options.AddCustomLabel("service", _ => "chat-service");
+});
 
         // Apply migrations on startup if --migrate is passed
         app.ApplyMigrations(args);
@@ -55,6 +59,8 @@ public class Program
             return "Hello World! I am Chat Service.";
         })
         .WithName("GetTest");
+
+        app.MapMetrics();
 
         app.Run();
     }

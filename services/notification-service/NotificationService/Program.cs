@@ -9,6 +9,7 @@ using DotNetEnv;
 using Serilog;
 using Microsoft.Extensions.Hosting;
 using Microsoft.EntityFrameworkCore;
+using Prometheus;
 
 namespace NotificationService;
 
@@ -22,7 +23,6 @@ public class Program
         try
         {
             var builder = WebApplication.CreateBuilder(args);
-
             // Configure Serilog Logging via Extension
             builder.Host.AddSerilogLogging();
 
@@ -43,6 +43,11 @@ public class Program
             builder.Services.AddMiddlewares();
 
             var app = builder.Build();
+            app.UseHttpMetrics(options =>
+            {
+                options.AddCustomLabel("service", _ => "notification-service");
+            });
+
 
             // Apply migrations and seed templates on startup if required
             app.ApplyMigrations(args);
@@ -62,6 +67,8 @@ public class Program
                 return "Hello World! I am Notification Service";
             })
             .WithName("GetTest");
+
+            app.MapMetrics();
 
             app.Run();
         }
