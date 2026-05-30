@@ -121,6 +121,7 @@ jobs:
               --from-literal=RABBITMQ_PORT='${{ secrets.RABBITMQ_PORT }}' \
               --from-literal=RABBITMQ_USERNAME='${{ secrets.RABBITMQ_USERNAME }}' \
               --from-literal=RABBITMQ_PASSWORD='${{ secrets.RABBITMQ_PASSWORD }}' \
+              --from-literal=CONVERSATION_SERVICE_URL='${{ secrets.CONVERSATION_SERVICE_URL }}' \
               --dry-run=client -o yaml | kubectl apply -f -
 
             # Replace ONLY the non-secret metadata (Image Tag and Port)
