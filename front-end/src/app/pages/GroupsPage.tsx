@@ -1,116 +1,115 @@
-import { useState } from "react";
-import { Plus, Search, Users, Crown, Shield, User, Settings as SettingsIcon, X } from "lucide-react";
-
-const mockGroups = [
-  {
-    id: 1,
-    name: "Nhóm Dự Án",
-    avatar: "https://api.dicebear.com/7.x/identicon/svg?seed=group1",
-    members: 24,
-    lastActivity: "5 phút trước",
-    unread: 3,
-    category: "Công việc",
-  },
-  {
-    id: 2,
-    name: "Team Marketing",
-    avatar: "https://api.dicebear.com/7.x/identicon/svg?seed=group2",
-    members: 15,
-    lastActivity: "1 giờ trước",
-    unread: 0,
-    category: "Công việc",
-  },
-  {
-    id: 3,
-    name: "Bạn Học",
-    avatar: "https://api.dicebear.com/7.x/identicon/svg?seed=group3",
-    members: 48,
-    lastActivity: "2 giờ trước",
-    unread: 12,
-    category: "Học tập",
-  },
-];
-
-const mockSuggestedGroups = [
-  {
-    id: 4,
-    name: "Lập Trình Viên Việt Nam",
-    avatar: "https://api.dicebear.com/7.x/identicon/svg?seed=group4",
-    members: 1240,
-    category: "Công nghệ",
-    description: "Cộng đồng các lập trình viên Việt Nam",
-  },
-  {
-    id: 5,
-    name: "Startup Việt",
-    avatar: "https://api.dicebear.com/7.x/identicon/svg?seed=group5",
-    members: 856,
-    category: "Kinh doanh",
-    description: "Kết nối các startup và doanh nhân",
-  },
-  {
-    id: 6,
-    name: "Du lịch Việt Nam",
-    avatar: "https://api.dicebear.com/7.x/identicon/svg?seed=group6",
-    members: 2340,
-    category: "Du lịch",
-    description: "Chia sẻ kinh nghiệm du lịch trong nước",
-  },
-];
-
-const mockRecentActivity = [
-  {
-    id: 1,
-    groupName: "Nhóm Dự Án",
-    userName: "Nguyễn Văn A",
-    action: "đã gửi tin nhắn mới",
-    time: "5 phút trước",
-    avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=user1",
-  },
-  {
-    id: 2,
-    groupName: "Bạn Học",
-    userName: "Trần Thị B",
-    action: "đã chia sẻ một ảnh",
-    time: "30 phút trước",
-    avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=user2",
-  },
-  {
-    id: 3,
-    groupName: "Team Marketing",
-    userName: "Lê Văn C",
-    action: "đã thêm 2 thành viên mới",
-    time: "1 giờ trước",
-    avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=user3",
-  },
-];
-
-const mockGroupMembers = [
-  { id: 1, name: "Nguyễn Văn A", role: "admin", avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=user1" },
-  { id: 2, name: "Trần Thị B", role: "moderator", avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=user2" },
-  { id: 3, name: "Lê Văn C", role: "member", avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=user3" },
-  { id: 4, name: "Phạm Thị D", role: "member", avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=user4" },
-];
+import { useState, useEffect } from "react";
+import { Plus, Search, Users, Crown, Shield, User, Settings as SettingsIcon, X, Loader2 } from "lucide-react";
+import { conversationApi, ConversationResponse, ConversationMember } from "../../api/conversationApi";
+import { friendshipApi, FriendResponse } from "../../api/friendshipApi";
 
 export function GroupsPage() {
-  const [showCreateModal, setShowCreateModal] = useState(false);
-  const [showGroupDetails, setShowGroupDetails] = useState(false);
-  const [selectedGroup, setSelectedGroup] = useState(mockGroups[0]);
+  const [groups, setGroups] = useState<ConversationResponse[]>([]);
+  const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
-  const [newGroupName, setNewGroupName] = useState("");
-  const [newGroupDescription, setNewGroupDescription] = useState("");
-  const [activeTab, setActiveTab] = useState<"joined" | "suggested" | "activity">("joined");
 
-  const handleCreateGroup = () => {
-    if (newGroupName.trim()) {
-      setShowCreateModal(false);
-      setNewGroupName("");
-      setNewGroupDescription("");
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [newGroupName, setNewGroupName] = useState("");
+  const [friends, setFriends] = useState<FriendResponse[]>([]);
+  const [selectedFriends, setSelectedFriends] = useState<string[]>([]);
+  const [creating, setCreating] = useState(false);
+
+  const [showGroupDetails, setShowGroupDetails] = useState(false);
+  const [selectedGroup, setSelectedGroup] = useState<ConversationResponse | null>(null);
+  const [groupMembers, setGroupMembers] = useState<ConversationMember[]>([]);
+  const [loadingMembers, setLoadingMembers] = useState(false);
+
+  useEffect(() => {
+    fetchGroups();
+    fetchFriends();
+  }, []);
+
+  const fetchGroups = async () => {
+    try {
+      setLoading(true);
+      const data = await conversationApi.getConversations();
+      // Lọc ra các hội thoại là nhóm
+      setGroups(data.filter((c: any) => c.isGroup) || []);
+    } catch (error) {
+      console.error("Lỗi khi tải nhóm:", error);
+    } finally {
+      setLoading(false);
     }
   };
 
+  const fetchFriends = async () => {
+    try {
+      const data = await friendshipApi.getFriends();
+      setFriends(data || []);
+    } catch (error) {
+      console.error("Lỗi tải bạn bè:", error);
+    }
+  };
+
+  const handleCreateGroup = async () => {
+    if (!newGroupName.trim()) {
+      alert("Vui lòng nhập tên nhóm!");
+      return;
+    }
+    if (selectedFriends.length === 0) {
+      alert("Vui lòng chọn ít nhất 1 thành viên!");
+      return;
+    }
+    try {
+      setCreating(true);
+      await conversationApi.createGroup(newGroupName, selectedFriends);
+      setShowCreateModal(false);
+      setNewGroupName("");
+      setSelectedFriends([]);
+      fetchGroups();
+    } catch (error) {
+      console.error("Lỗi tạo nhóm:", error);
+      alert("Tạo nhóm thất bại");
+    } finally {
+      setCreating(false);
+    }
+  };
+
+  const handleOpenGroupDetails = async (group: ConversationResponse) => {
+    setSelectedGroup(group);
+    setShowGroupDetails(true);
+    try {
+      setLoadingMembers(true);
+      const members = await conversationApi.getMembers(group.id);
+      setGroupMembers(members || []);
+    } catch (error) {
+      console.error("Lỗi tải thành viên:", error);
+    } finally {
+      setLoadingMembers(false);
+    }
+  };
+
+  const handleLeaveGroup = async () => {
+    if (!selectedGroup) return;
+    if (confirm(`Bạn có chắc chắn muốn rời nhóm "${selectedGroup.name}"?`)) {
+      try {
+        await conversationApi.leaveGroup(selectedGroup.id);
+        setShowGroupDetails(false);
+        fetchGroups();
+      } catch (error) {
+        console.error("Lỗi rời nhóm:", error);
+        alert("Rời nhóm thất bại!");
+      }
+    }
+  };
+
+  const toggleFriendSelection = (id: string) => {
+    setSelectedFriends((prev) =>
+      prev.includes(id) ? prev.filter((fId) => fId !== id) : [...prev, id]
+    );
+  };
+
+  const filteredGroups = groups.filter((g) =>
+    g.name?.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
   const getRoleIcon = (role: string) => {
-    switch (role) {
+    switch (role?.toLowerCase()) {
       case "admin":
         return <Crown className="w-4 h-4 text-yellow-400" />;
       case "moderator":
@@ -121,23 +120,23 @@ export function GroupsPage() {
   };
 
   const getRoleLabel = (role: string) => {
-    switch (role) {
+    switch (role?.toLowerCase()) {
       case "admin":
         return "Quản trị viên";
       case "moderator":
-        return "Người điều hành";
+        return "Quản trị viên phó";
       default:
         return "Thành viên";
     }
   };
 
   return (
-    <div className="h-full overflow-y-auto pb-20 md:pb-0">
+    <div className="h-full overflow-y-auto pb-20 md:pb-0 custom-scrollbar">
       <div className="max-w-6xl mx-auto p-6 space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-white mb-2">Nhóm</h1>
-            <p className="text-white/60">Quản lý và tạo nhóm trò chuyện</p>
+            <h1 className="text-3xl font-bold text-white mb-2">Nhóm của bạn</h1>
+            <p className="text-white/60">Quản lý và tạo nhóm trò chuyện mới</p>
           </div>
           <button
             onClick={() => setShowCreateModal(true)}
@@ -159,148 +158,56 @@ export function GroupsPage() {
           />
         </div>
 
-        <div className="flex gap-2 overflow-x-auto pb-2">
-          <button
-            onClick={() => setActiveTab("joined")}
-            className={`px-6 py-2.5 rounded-xl font-semibold whitespace-nowrap transition-all ${
-              activeTab === "joined"
-                ? "bg-gradient-to-br from-cyan-500 to-blue-500 text-white shadow-lg shadow-cyan-500/50"
-                : "bg-slate-800/50 text-white/60 hover:text-white hover:bg-slate-800/70"
-            }`}
-          >
-            Nhóm của bạn
-          </button>
-          <button
-            onClick={() => setActiveTab("suggested")}
-            className={`px-6 py-2.5 rounded-xl font-semibold whitespace-nowrap transition-all ${
-              activeTab === "suggested"
-                ? "bg-gradient-to-br from-cyan-500 to-blue-500 text-white shadow-lg shadow-cyan-500/50"
-                : "bg-slate-800/50 text-white/60 hover:text-white hover:bg-slate-800/70"
-            }`}
-          >
-            Khám phá nhóm
-          </button>
-          <button
-            onClick={() => setActiveTab("activity")}
-            className={`px-6 py-2.5 rounded-xl font-semibold whitespace-nowrap transition-all ${
-              activeTab === "activity"
-                ? "bg-gradient-to-br from-cyan-500 to-blue-500 text-white shadow-lg shadow-cyan-500/50"
-                : "bg-slate-800/50 text-white/60 hover:text-white hover:bg-slate-800/70"
-            }`}
-          >
-            Hoạt động gần đây
-          </button>
-        </div>
-
-        {activeTab === "joined" && (
+        {loading ? (
+          <div className="flex justify-center py-20">
+            <Loader2 className="w-8 h-8 text-cyan-400 animate-spin" />
+          </div>
+        ) : filteredGroups.length === 0 ? (
+          <div className="text-center py-20">
+            <div className="w-20 h-20 rounded-full bg-slate-800/50 flex items-center justify-center mx-auto mb-4">
+              <Users className="w-10 h-10 text-white/40" />
+            </div>
+            <h3 className="text-white font-semibold text-lg mb-2">Chưa có nhóm nào</h3>
+            <p className="text-white/60">Bạn chưa tham gia nhóm nào. Hãy tạo nhóm mới để bắt đầu!</p>
+          </div>
+        ) : (
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {mockGroups.map((group) => (
+            {filteredGroups.map((group) => (
               <div
                 key={group.id}
                 className="bg-slate-900/30 backdrop-blur-xl rounded-2xl border border-white/10 p-6 hover:border-cyan-500/50 transition-all cursor-pointer"
-                onClick={() => {
-                  setSelectedGroup(group);
-                  setShowGroupDetails(true);
-                }}
+                onClick={() => handleOpenGroupDetails(group)}
               >
                 <div className="flex items-start justify-between mb-4">
                   <img
-                    src={group.avatar}
+                    src={group.avatarUrl || `https://api.dicebear.com/7.x/identicon/svg?seed=${group.id}`}
                     alt={group.name}
-                    className="w-16 h-16 rounded-xl"
+                    className="w-16 h-16 rounded-xl bg-slate-800"
                   />
-                  {group.unread > 0 && (
+                  {group.unreadCount && group.unreadCount > 0 ? (
                     <span className="px-2.5 py-1 bg-cyan-500 text-white text-xs font-semibold rounded-full">
-                      {group.unread}
+                      {group.unreadCount}
                     </span>
-                  )}
+                  ) : null}
                 </div>
-                <h3 className="text-white font-bold text-lg mb-2">
-                  {group.name}
-                </h3>
-                <span className="inline-block px-3 py-1 bg-cyan-500/20 text-cyan-400 rounded-full text-xs font-semibold mb-3">
-                  {group.category}
-                </span>
-                <div className="flex items-center gap-4 text-sm text-white/60">
+                <h3 className="text-white font-bold text-lg mb-2">{group.name}</h3>
+                <div className="flex items-center gap-4 text-sm text-white/60 mt-4">
                   <div className="flex items-center gap-1.5">
                     <Users className="w-4 h-4" />
-                    <span>{group.members} thành viên</span>
+                    <span>{group.membersCount || "..."} thành viên</span>
                   </div>
-                </div>
-                <div className="mt-3 pt-3 border-t border-white/10">
-                  <p className="text-xs text-white/40">{group.lastActivity}</p>
                 </div>
               </div>
             ))}
-          </div>
-        )}
-
-        {activeTab === "suggested" && (
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {mockSuggestedGroups.map((group) => (
-              <div
-                key={group.id}
-                className="bg-slate-900/30 backdrop-blur-xl rounded-2xl border border-white/10 p-6 hover:border-cyan-500/50 transition-all"
-              >
-                <img
-                  src={group.avatar}
-                  alt={group.name}
-                  className="w-16 h-16 rounded-xl mb-4"
-                />
-                <h3 className="text-white font-bold text-lg mb-2">
-                  {group.name}
-                </h3>
-                <span className="inline-block px-3 py-1 bg-blue-500/20 text-blue-400 rounded-full text-xs font-semibold mb-3">
-                  {group.category}
-                </span>
-                <p className="text-white/60 text-sm mb-4">{group.description}</p>
-                <div className="flex items-center gap-2 text-sm text-white/60 mb-4">
-                  <Users className="w-4 h-4" />
-                  <span>{group.members.toLocaleString()} thành viên</span>
-                </div>
-                <button className="w-full py-2.5 rounded-xl bg-gradient-to-br from-cyan-500 to-blue-500 text-white font-semibold hover:shadow-lg hover:shadow-cyan-500/50 transition-all">
-                  Tham gia nhóm
-                </button>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {activeTab === "activity" && (
-          <div className="bg-slate-900/30 backdrop-blur-xl rounded-2xl border border-white/10 p-6">
-            <h2 className="text-xl font-bold text-white mb-4">Hoạt động gần đây</h2>
-            <div className="space-y-3">
-              {mockRecentActivity.map((activity) => (
-                <div
-                  key={activity.id}
-                  className="flex items-center gap-4 p-4 bg-slate-800/30 rounded-xl hover:bg-slate-800/50 transition-colors"
-                >
-                  <img
-                    src={activity.avatar}
-                    alt={activity.userName}
-                    className="w-12 h-12 rounded-full"
-                  />
-                  <div className="flex-1">
-                    <p className="text-white">
-                      <span className="font-semibold">{activity.userName}</span>{" "}
-                      {activity.action} trong{" "}
-                      <span className="font-semibold text-cyan-400">
-                        {activity.groupName}
-                      </span>
-                    </p>
-                    <p className="text-white/60 text-sm">{activity.time}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
           </div>
         )}
       </div>
 
+      {/* Modal Tạo nhóm */}
       {showCreateModal && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-slate-900/95 backdrop-blur-xl rounded-2xl border border-white/10 p-8 max-w-md w-full">
-            <div className="flex items-center justify-between mb-6">
+          <div className="bg-slate-900/95 backdrop-blur-xl rounded-2xl border border-white/10 p-8 max-w-md w-full max-h-[90vh] flex flex-col">
+            <div className="flex items-center justify-between mb-6 shrink-0">
               <h2 className="text-2xl font-bold text-white">Tạo nhóm mới</h2>
               <button
                 onClick={() => setShowCreateModal(false)}
@@ -310,11 +217,9 @@ export function GroupsPage() {
               </button>
             </div>
 
-            <div className="space-y-4">
+            <div className="space-y-6 overflow-y-auto custom-scrollbar pr-2 flex-1 min-h-0">
               <div>
-                <label className="block text-white/80 mb-2 text-sm font-medium">
-                  Tên nhóm
-                </label>
+                <label className="block text-white/80 mb-2 text-sm font-medium">Tên nhóm</label>
                 <input
                   type="text"
                   value={newGroupName}
@@ -326,66 +231,74 @@ export function GroupsPage() {
 
               <div>
                 <label className="block text-white/80 mb-2 text-sm font-medium">
-                  Mô tả (tùy chọn)
+                  Chọn thành viên ({selectedFriends.length})
                 </label>
-                <textarea
-                  value={newGroupDescription}
-                  onChange={(e) => setNewGroupDescription(e.target.value)}
-                  placeholder="Mô tả về nhóm..."
-                  rows={3}
-                  className="w-full px-4 py-3 bg-slate-800/50 border border-white/10 rounded-xl text-white placeholder:text-white/30 focus:outline-none focus:border-cyan-500/50 focus:ring-2 focus:ring-cyan-500/20 resize-none"
-                />
-              </div>
-
-              <div>
-                <label className="block text-white/80 mb-2 text-sm font-medium">
-                  Ảnh nhóm
-                </label>
-                <div className="flex items-center gap-4">
-                  <div className="w-20 h-20 rounded-xl bg-slate-800/50 border border-white/10 flex items-center justify-center">
-                    <Users className="w-8 h-8 text-white/40" />
+                {friends.length === 0 ? (
+                  <p className="text-white/40 text-sm">Bạn chưa có bạn bè nào để thêm.</p>
+                ) : (
+                  <div className="space-y-2 max-h-48 overflow-y-auto custom-scrollbar pr-2 border border-white/10 p-2 rounded-xl bg-slate-800/20">
+                    {friends.map((friend) => (
+                      <div
+                        key={friend.id}
+                        onClick={() => toggleFriendSelection(friend.id)}
+                        className={`flex items-center gap-3 p-2 rounded-lg cursor-pointer transition-colors ${
+                          selectedFriends.includes(friend.id) ? "bg-cyan-500/20 border border-cyan-500/50" : "hover:bg-slate-800/50 border border-transparent"
+                        }`}
+                      >
+                        <img
+                          src={friend.avatarUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${friend.id}`}
+                          alt={friend.name}
+                          className="w-8 h-8 rounded-full bg-slate-800"
+                        />
+                        <span className="text-white text-sm flex-1">{friend.name}</span>
+                        {selectedFriends.includes(friend.id) && (
+                          <div className="w-4 h-4 rounded-full bg-cyan-500 flex items-center justify-center">
+                            <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                            </svg>
+                          </div>
+                        )}
+                      </div>
+                    ))}
                   </div>
-                  <button className="px-4 py-2 rounded-lg bg-white/10 text-white font-medium hover:bg-white/20 transition-all">
-                    Tải lên
-                  </button>
-                </div>
+                )}
               </div>
+            </div>
 
-              <div className="flex gap-3 pt-4">
-                <button
-                  onClick={() => setShowCreateModal(false)}
-                  className="flex-1 px-4 py-3 rounded-xl bg-white/10 text-white font-semibold hover:bg-white/20 transition-all"
-                >
-                  Hủy
-                </button>
-                <button
-                  onClick={handleCreateGroup}
-                  className="flex-1 px-4 py-3 rounded-xl bg-gradient-to-br from-cyan-500 to-blue-500 text-white font-semibold hover:shadow-lg hover:shadow-cyan-500/50 transition-all"
-                >
-                  Tạo nhóm
-                </button>
-              </div>
+            <div className="flex gap-3 pt-6 shrink-0 mt-auto border-t border-white/10">
+              <button
+                onClick={() => setShowCreateModal(false)}
+                className="flex-1 px-4 py-3 rounded-xl bg-white/10 text-white font-semibold hover:bg-white/20 transition-all"
+              >
+                Hủy
+              </button>
+              <button
+                onClick={handleCreateGroup}
+                disabled={creating}
+                className="flex-1 px-4 py-3 rounded-xl bg-gradient-to-br from-cyan-500 to-blue-500 text-white font-semibold hover:shadow-lg hover:shadow-cyan-500/50 transition-all disabled:opacity-50 flex items-center justify-center"
+              >
+                {creating ? <Loader2 className="w-5 h-5 animate-spin" /> : "Tạo nhóm"}
+              </button>
             </div>
           </div>
         </div>
       )}
 
-      {showGroupDetails && (
+      {/* Modal Chi tiết nhóm */}
+      {showGroupDetails && selectedGroup && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-slate-900/95 backdrop-blur-xl rounded-2xl border border-white/10 p-8 max-w-2xl w-full max-h-[80vh] overflow-y-auto">
-            <div className="flex items-start justify-between mb-6">
+          <div className="bg-slate-900/95 backdrop-blur-xl rounded-2xl border border-white/10 p-8 max-w-2xl w-full max-h-[80vh] flex flex-col">
+            <div className="flex items-start justify-between mb-6 shrink-0 border-b border-white/10 pb-4">
               <div className="flex items-center gap-4">
                 <img
-                  src={selectedGroup.avatar}
+                  src={selectedGroup.avatarUrl || `https://api.dicebear.com/7.x/identicon/svg?seed=${selectedGroup.id}`}
                   alt={selectedGroup.name}
-                  className="w-16 h-16 rounded-xl"
+                  className="w-16 h-16 rounded-xl bg-slate-800"
                 />
                 <div>
-                  <h2 className="text-2xl font-bold text-white">
-                    {selectedGroup.name}
-                  </h2>
+                  <h2 className="text-2xl font-bold text-white">{selectedGroup.name}</h2>
                   <p className="text-white/60">
-                    {selectedGroup.members} thành viên
+                    {loadingMembers ? "Đang tải thành viên..." : `${groupMembers.length} thành viên`}
                   </p>
                 </div>
               </div>
@@ -397,56 +310,49 @@ export function GroupsPage() {
               </button>
             </div>
 
-            <div className="space-y-6">
+            <div className="flex-1 overflow-y-auto custom-scrollbar pr-2 space-y-6 min-h-0">
               <div>
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-lg font-bold text-white">Thành viên</h3>
-                  <button className="px-4 py-2 rounded-lg bg-gradient-to-br from-cyan-500 to-blue-500 text-white font-medium hover:shadow-lg hover:shadow-cyan-500/50 transition-all flex items-center gap-2">
-                    <Plus className="w-4 h-4" />
-                    Thêm
-                  </button>
                 </div>
-                <div className="space-y-2">
-                  {mockGroupMembers.map((member) => (
-                    <div
-                      key={member.id}
-                      className="flex items-center gap-3 p-3 bg-slate-800/30 rounded-xl hover:bg-slate-800/50 transition-colors"
-                    >
-                      <img
-                        src={member.avatar}
-                        alt={member.name}
-                        className="w-10 h-10 rounded-full"
-                      />
-                      <div className="flex-1">
-                        <h4 className="text-white font-semibold">
-                          {member.name}
-                        </h4>
-                        <div className="flex items-center gap-1.5 text-sm text-white/60">
-                          {getRoleIcon(member.role)}
-                          <span>{getRoleLabel(member.role)}</span>
+                {loadingMembers ? (
+                  <div className="flex justify-center py-10">
+                    <Loader2 className="w-6 h-6 text-cyan-400 animate-spin" />
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {groupMembers.map((member) => (
+                      <div
+                        key={member.id}
+                        className="flex items-center gap-3 p-3 bg-slate-800/30 rounded-xl hover:bg-slate-800/50 transition-colors"
+                      >
+                        <img
+                          src={member.avatarUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${member.id}`}
+                          alt={member.name}
+                          className="w-10 h-10 rounded-full bg-slate-800"
+                        />
+                        <div className="flex-1">
+                          <h4 className="text-white font-semibold">{member.name}</h4>
+                          <div className="flex items-center gap-1.5 text-sm text-white/60">
+                            {getRoleIcon(member.role)}
+                            <span>{getRoleLabel(member.role)}</span>
+                          </div>
                         </div>
                       </div>
-                      <button className="w-8 h-8 rounded-lg flex items-center justify-center text-white/60 hover:text-white hover:bg-white/10 transition-all">
-                        <SettingsIcon className="w-4 h-4" />
-                      </button>
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
+                )}
               </div>
 
-              <div>
-                <h3 className="text-lg font-bold text-white mb-4">
-                  Cài đặt nhóm
-                </h3>
+              <div className="border-t border-white/10 pt-6">
+                <h3 className="text-lg font-bold text-white mb-4">Cài đặt nhóm</h3>
                 <div className="space-y-2">
-                  <button className="w-full p-3 bg-slate-800/30 rounded-xl hover:bg-slate-800/50 transition-colors text-left text-white">
-                    Chỉnh sửa thông tin nhóm
-                  </button>
-                  <button className="w-full p-3 bg-slate-800/30 rounded-xl hover:bg-slate-800/50 transition-colors text-left text-white">
-                    Quyền riêng tư
-                  </button>
-                  <button className="w-full p-3 bg-slate-800/30 rounded-xl hover:bg-slate-800/50 transition-colors text-left text-red-400">
-                    Rời khỏi nhóm
+                  <button 
+                    onClick={handleLeaveGroup}
+                    className="w-full p-3 bg-red-500/10 border border-red-500/20 rounded-xl hover:bg-red-500/20 transition-colors text-left text-red-400 font-semibold flex items-center justify-between"
+                  >
+                    <span>Rời khỏi nhóm</span>
+                    <X className="w-4 h-4" />
                   </button>
                 </div>
               </div>

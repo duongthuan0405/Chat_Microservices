@@ -1,18 +1,57 @@
-import { Outlet, Link, useLocation } from "react-router";
-import { MessageCircle, Users, Settings, Bell, UserCircle, UsersRound } from "lucide-react";
-import { useState } from "react";
+import { Outlet, Link, useLocation, useNavigate } from "react-router";
+import { MessageCircle, Users, Bell, UserCircle, UsersRound, LogOut } from "lucide-react";
+import { useState, useEffect } from "react";
+import { signalrService } from "../../api/signalrClient";
+import { chatHubService } from "../../api/chatHubClient";
+import { toast } from "sonner";
 
 export function DashboardLayout() {
   const location = useLocation();
+  const navigate = useNavigate();
   const [showMobileNav, setShowMobileNav] = useState(false);
 
+  useEffect(() => {
+    const token = localStorage.getItem("access_token");
+    const notificationHandler = (newNoti: any) => {
+      console.log("📬 Nhận được thông báo mới:", newNoti);
+      toast.info(`🔔 ${newNoti.title || "Thông báo mới"}`, {
+        description: newNoti.content || "Bạn có một thông báo mới",
+      });
+    };
+
+    const chatHandler = (newMsg: any) => {
+      console.log("💬 Nhận được tin nhắn mới:", newMsg);
+      toast.message(`Tin nhắn từ ${newMsg.senderName || "Ai đó"}`, {
+        description: newMsg.content || "Có một tin nhắn mới",
+        icon: <MessageCircle className="w-4 h-4 text-cyan-400" />,
+      });
+    };
+
+    if (token) {
+      signalrService.startConnection(token);
+      signalrService.onReceiveNotification(notificationHandler);
+
+      chatHubService.startConnection(token);
+      chatHubService.onReceiveMessage(chatHandler);
+    }
+
+    return () => {
+      signalrService.offReceiveNotification(notificationHandler);
+      chatHubService.offReceiveMessage(chatHandler);
+    };
+  }, []);
+
+  const handleLogout = () => {
+    localStorage.removeItem("access_token");
+    localStorage.removeItem("user_id");
+    navigate("/login");
+  };
+
   const navItems = [
-    { path: "/app", icon: MessageCircle, label: "Tin nhắn", exact: true, badge: 5 },
-    { path: "/app/friends", icon: Users, label: "Bạn bè", badge: 3 },
-    { path: "/app/groups", icon: UsersRound, label: "Nhóm", badge: 15 },
-    { path: "/app/notifications", icon: Bell, label: "Thông báo", badge: 8 },
+    { path: "/app", icon: MessageCircle, label: "Tin nhắn", exact: true },
+    { path: "/app/friends", icon: Users, label: "Bạn bè" },
+    { path: "/app/notifications", icon: Bell, label: "Thông báo" },
     { path: "/app/profile", icon: UserCircle, label: "Hồ sơ" },
-    { path: "/app/settings", icon: Settings, label: "Cài đặt" },
   ];
 
   const isActive = (path: string, exact?: boolean) => {
@@ -31,6 +70,14 @@ export function DashboardLayout() {
           </div>
           <span className="text-xl font-bold text-white">VietChat</span>
         </div>
+
+        <button 
+          onClick={handleLogout}
+          className="flex items-center gap-2 px-4 py-2 rounded-xl bg-red-500/10 text-red-400 hover:bg-red-500/20 transition-all font-medium"
+        >
+          <LogOut className="w-5 h-5" />
+          <span>Đăng xuất</span>
+        </button>
       </div>
 
       <div className="flex-1 flex overflow-hidden">
@@ -48,14 +95,19 @@ export function DashboardLayout() {
                 title={item.label}
               >
                 <item.icon className="w-6 h-6" />
-                {item.badge && item.badge > 0 && (
-                  <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center">
-                    {item.badge > 9 ? "9+" : item.badge}
-                  </span>
-                )}
               </Link>
             ))}
           </nav>
+          
+          <div className="mt-auto mb-2">
+            <button
+              onClick={handleLogout}
+              className="w-12 h-12 rounded-xl flex items-center justify-center text-white/60 hover:text-red-400 hover:bg-red-500/10 transition-all"
+              title="Đăng xuất"
+            >
+              <LogOut className="w-6 h-6" />
+            </button>
+          </div>
         </aside>
 
         <main className="flex-1 overflow-hidden">
@@ -77,11 +129,6 @@ export function DashboardLayout() {
             >
               <div className="relative">
                 <item.icon className="w-5 h-5" />
-                {item.badge && item.badge > 0 && (
-                  <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center">
-                    {item.badge > 9 ? "9+" : item.badge}
-                  </span>
-                )}
               </div>
               <span className="text-[10px]">{item.label}</span>
             </Link>

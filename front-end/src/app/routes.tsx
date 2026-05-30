@@ -6,8 +6,6 @@ import { ForgotPasswordPage } from "./pages/ForgotPasswordPage";
 import { DashboardLayout } from "./layouts/DashboardLayout";
 import { ChatDashboard } from "./pages/ChatDashboard";
 import { FriendsPage } from "./pages/FriendsPage";
-import { GroupsPage } from "./pages/GroupsPage";
-import { SettingsPage } from "./pages/SettingsPage";
 import { NotificationsPage } from "./pages/NotificationsPage";
 import { ProfilePage } from "./pages/ProfilePage";
 
@@ -41,14 +39,6 @@ export const router = createBrowserRouter([
         element: <FriendsPage />,
       },
       {
-        path: "groups",
-        element: <GroupsPage />,
-      },
-      {
-        path: "settings",
-        element: <SettingsPage />,
-      },
-      {
         path: "notifications",
         element: <NotificationsPage />,
       },
@@ -69,14 +59,6 @@ export const router = createBrowserRouter([
       {
         path: "friends",
         element: <FriendsPage />,
-      },
-      {
-        path: "groups",
-        element: <GroupsPage />,
-      },
-      {
-        path: "settings",
-        element: <SettingsPage />,
       },
       {
         path: "notifications",
