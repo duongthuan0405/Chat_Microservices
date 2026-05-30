@@ -12,6 +12,10 @@ metadata:
     nginx.ingress.kubernetes.io/cors-allow-methods: "GET, PUT, POST, DELETE, PATCH, OPTIONS"
     nginx.ingress.kubernetes.io/cors-allow-headers: "DNT,Keep-Alive,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Range,Authorization"
 spec:
+  tls:
+  - hosts:
+      - 20.196.144.168
+    secretName: chatapp-tls-secret
   rules:
   - http:
       paths:
@@ -61,6 +65,10 @@ metadata:
     nginx.ingress.kubernetes.io/auth-response-headers: "X-User-Id, X-User-Email"
     
 spec:
+  tls:
+  - hosts:
+      - 20.196.144.168
+    secretName: chatapp-tls-secret
   rules:
   - http:
       paths:
