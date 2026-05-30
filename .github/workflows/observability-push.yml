@@ -73,3 +73,64 @@ jobs:
             kubectl get pods -l app=grafana -n default
             kubectl get svc prometheus-service -n default
             kubectl get svc grafana-service -n default
+
+            echo "Detailed pod status:"
+            kubectl get pods -l app=prometheus -n default -o wide
+            kubectl get pods -l app=grafana -n default -o wide
+
+            echo "Prometheus logs:"
+            kubectl logs -l app=prometheus -n default --tail=80 || true
+
+            echo "Grafana logs:"
+            kubectl logs -l app=grafana -n default --tail=80 || true
+
+            echo "Testing Prometheus readiness from inside cluster..."
+            kubectl run prometheus-health-check-${{ github.run_id }} \
+              --rm -i \
+              --restart=Never \
+              --image=curlimages/curl \
+              -- curl -sS http://prometheus-service.default.svc.cluster.local:9090/-/ready
+
+            echo "Testing Grafana health from inside cluster..."
+            kubectl run grafana-health-check-${{ github.run_id }} \
+              --rm -i \
+              --restart=Never \
+              --image=curlimages/curl \
+              -- curl -sS http://grafana-service.default.svc.cluster.local/api/health
+
+            echo "Testing Prometheus targets API..."
+            kubectl run prometheus-targets-check-${{ github.run_id }} \
+              --rm -i \
+              --restart=Never \
+              --image=curlimages/curl \
+              -- sh -c "curl -sS http://prometheus-service.default.svc.cluster.local:9090/api/v1/targets | head -c 3000"
+
+            echo ""
+            echo "Testing metrics endpoints from inside cluster..."
+
+            kubectl run metrics-endpoints-check-${{ github.run_id }} \
+              --rm -i \
+              --restart=Never \
+              --image=curlimages/curl \
+              -- sh -c '
+                set -e
+
+                echo "Checking auth-service metrics..."
+                curl -fsS http://auth-service.default.svc.cluster.local:3667/metrics | head -20
+
+                echo "Checking chat-service metrics..."
+                curl -fsS http://chat-service.default.svc.cluster.local:80/metrics | head -20
+
+                echo "Checking conversation-service metrics..."
+                curl -fsS http://conversation-service.default.svc.cluster.local:8083/metrics | head -20
+
+                echo "Checking friendship-service metrics..."
+                curl -fsS http://friendship-service.default.svc.cluster.local:8081/metrics | head -20
+
+                echo "Checking notification-service metrics..."
+                curl -fsS http://notification-service.default.svc.cluster.local:80/metrics | head -20
+              '
+
+            echo "Ingress status:"
+            kubectl get ingress -n default -o wide || true
+            kubectl describe ingress api-gateway-ingress-public -n default || true
