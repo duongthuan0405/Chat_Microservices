@@ -150,6 +150,9 @@ jobs:
             kubectl apply -f $MANIFEST_PATH
             kubectl apply -f $SVC_MANIFEST_PATH
 
+            # Force Kubernetes to restart the pods to pull the newly updated :latest image
+            kubectl rollout restart deployment/notification-service -n default
+
             # Show status
             kubectl rollout status deployment/notification-service -n default || true
             kubectl get pods -l app=notification-service -n default
