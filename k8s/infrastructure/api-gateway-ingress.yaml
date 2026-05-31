@@ -64,12 +64,6 @@ metadata:
     # Tắt HTTPS redirect
     nginx.ingress.kubernetes.io/ssl-redirect: "false"
 
-    # BỎ QUA AUTHENTICATION CHO CÁC REQUEST OPTIONS (CORS PREFLIGHT)
-    nginx.ingress.kubernetes.io/auth-snippet: |
-      if ($request_method = 'OPTIONS') {
-        return 204;
-      }
-
     # CẤU HÌNH AUTHENTICATION OFFLOADING
     nginx.ingress.kubernetes.io/auth-url: "http://auth-service.default.svc.cluster.local:3667/api/auth/verify-token"
     nginx.ingress.kubernetes.io/auth-response-headers: "X-User-Id, X-User-Email"
