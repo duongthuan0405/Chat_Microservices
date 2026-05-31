@@ -1,5 +1,5 @@
 # 1. PUBLIC INGRESS (Không cần xác thực)
-# Dành cho các endpoint Login, Register của Auth Service
+# Dành cho các endpoint Login, Register của Auth Service và Grafana
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
@@ -7,11 +7,14 @@ metadata:
   namespace: default
   annotations:
     kubernetes.io/ingress.class: nginx
+    
+    # Kích hoạt CORS
     nginx.ingress.kubernetes.io/enable-cors: "true"
     nginx.ingress.kubernetes.io/cors-allow-origin: "http://localhost:5173"
     nginx.ingress.kubernetes.io/cors-allow-methods: "GET, PUT, POST, DELETE, PATCH, OPTIONS"
     nginx.ingress.kubernetes.io/cors-allow-headers: "DNT,Keep-Alive,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Range,Authorization,x-signalr-user-agent"
     nginx.ingress.kubernetes.io/cors-allow-credentials: "true"
+    # Tắt HTTPS redirect nếu bạn chỉ dùng HTTP
     nginx.ingress.kubernetes.io/ssl-redirect: "false"
 spec:
   rules:
@@ -27,7 +30,7 @@ spec:
             port:
               number: 3667
 
-      # Grafana Dashboard (Không cần auth token)
+      # Grafana Dashboard
       - path: /grafana
         pathType: Prefix
         backend:
@@ -37,7 +40,6 @@ spec:
               number: 80
 
 ---
-
 
 # 2. PRIVATE INGRESS (Bắt buộc xác thực)
 # Dành cho các Service yêu cầu đăng nhập
@@ -53,13 +55,20 @@ metadata:
     nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
     nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
     
-    # Cấu hình CORS
+    # Kích hoạt CORS
     nginx.ingress.kubernetes.io/enable-cors: "true"
     nginx.ingress.kubernetes.io/cors-allow-origin: "http://localhost:5173"
     nginx.ingress.kubernetes.io/cors-allow-methods: "GET, PUT, POST, DELETE, PATCH, OPTIONS"
     nginx.ingress.kubernetes.io/cors-allow-headers: "DNT,Keep-Alive,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Range,Authorization,x-signalr-user-agent"
     nginx.ingress.kubernetes.io/cors-allow-credentials: "true"
+    # Tắt HTTPS redirect
     nginx.ingress.kubernetes.io/ssl-redirect: "false"
+
+    # BỎ QUA AUTHENTICATION CHO CÁC REQUEST OPTIONS (CORS PREFLIGHT)
+    nginx.ingress.kubernetes.io/auth-snippet: |
+      if ($request_method = 'OPTIONS') {
+        return 204;
+      }
 
     # CẤU HÌNH AUTHENTICATION OFFLOADING
     nginx.ingress.kubernetes.io/auth-url: "http://auth-service.default.svc.cluster.local:3667/api/auth/verify-token"
@@ -87,7 +96,7 @@ spec:
             port:
               number: 80
 
-      # Auth Service (Profile)
+      # Auth Service (Profile & Users)
       - path: /api/profile
         pathType: Prefix
         backend:
@@ -96,7 +105,6 @@ spec:
             port:
               number: 3667
 
-      #Auth Service (User Management)
       - path: /api/users
         pathType: Prefix
         backend:

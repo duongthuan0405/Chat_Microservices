@@ -47,7 +47,6 @@ func New(address string, conversationUsecase domain.ConversationUsecase) *Server
 	r := chi.NewRouter()
 
 	r.Use(httpdelivery.WithRecover)
-	r.Use(httpdelivery.WithCORS)
 	r.Use(metricsMiddleware)
 	r.Use(httpdelivery.WithRequestLog)
 
