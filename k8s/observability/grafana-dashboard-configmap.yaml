@@ -75,7 +75,7 @@ data:
           "gridPos": { "x": 0, "y": 8, "w": 12, "h": 8 },
           "targets": [
             {
-              "expr": "histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket{endpoint!~\"/(ready|live|health|metrics|hubs/.*)\"}[5m])) by (le, service)) or histogram_quantile(0.95, sum(rate(chat_microservice_http_request_duration_seconds_bucket{route!~\"/(ready|live|health|metrics)\"}[5m])) by (le, service))",
+              "expr": "histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket{endpoint!~\"/(ready|live|health|metrics)\"}[5m])) by (le, service)) or histogram_quantile(0.95, sum(rate(chat_microservice_http_request_duration_seconds_bucket{route!~\"/(ready|live|health|metrics)\"}[5m])) by (le, service))",
               "legendFormat": "{{service}}"
             }
           ],
