@@ -34,7 +34,6 @@ app.UseHttpMetrics(options =>
     options.AddCustomLabel("service", _ => "auth-service");
 });
 
-// Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
