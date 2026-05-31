@@ -59,10 +59,8 @@ func New(address string, friendshipUsecase domain.FriendshipUsecase) *Server {
 	})
 
 	handler := httpdelivery.WithRecover(
-		httpdelivery.WithCORS(
-			metricsMiddleware(
-				httpdelivery.WithRequestLog(mux),
-			),
+		metricsMiddleware(
+			httpdelivery.WithRequestLog(mux),
 		),
 	)
 
