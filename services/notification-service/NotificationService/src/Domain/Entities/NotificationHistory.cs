@@ -15,6 +15,8 @@ public partial class NotificationHistory
     private int _retryCount = 0;
     private DateTimeOffset _createdAt;
     private DateTimeOffset? _sentAt;
+    private string _notificationType = null!;
+    private Guid? _refTo;
 
     // Parameterless constructor is private to enforce initialization via Builder
     private NotificationHistory()
@@ -119,5 +121,22 @@ public partial class NotificationHistory
                 throw new ArgumentException("SentAt must be a valid date.", nameof(value));
             _sentAt = value;
         }
+    }
+
+    public string NotificationType
+    {
+        get => _notificationType;
+        set
+        {
+            if (string.IsNullOrWhiteSpace(value))
+                throw new ArgumentException("NotificationType cannot be null or empty.", nameof(value));
+            _notificationType = value;
+        }
+    }
+
+    public Guid? RefTo
+    {
+        get => _refTo;
+        set => _refTo = value;
     }
 }
