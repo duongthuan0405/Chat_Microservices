@@ -1,0 +1,17 @@
+{
+    "name": "chat-microservices-integration-tests",
+    "version": "1.0.0",
+    "private": true,
+    "type": "module",
+    "scripts": {
+        "test": "node run-all.js",
+        "test:auth": "node specs/01-auth-gateway.spec.js",
+        "test:conversation": "node specs/02-conversation-permission.spec.js",
+        "test:friendship": "node specs/03-friendship-flow.spec.js",
+        "test:chat": "node specs/04-chat-message-flow.spec.js",
+        "test:notification": "node specs/05-notification-history.spec.js"
+    },
+    "dependencies": {
+        "dotenv": "16.4.7"
+    }
+}

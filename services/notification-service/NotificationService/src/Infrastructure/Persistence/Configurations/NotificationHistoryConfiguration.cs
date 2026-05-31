@@ -33,5 +33,12 @@ public class NotificationHistoryConfiguration : IEntityTypeConfiguration<Notific
 
         builder.Property(x => x.RetryCount)
             .HasDefaultValue(0);
+
+        builder.Property(x => x.NotificationType)
+            .IsRequired()
+            .HasMaxLength(100);
+
+        builder.Property(x => x.RefTo)
+            .IsRequired(false);
     }
 }

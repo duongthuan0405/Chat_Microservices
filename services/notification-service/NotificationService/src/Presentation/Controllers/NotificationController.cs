@@ -43,6 +43,8 @@ public class NotificationController : ControllerBase
             UserId = item.UserId,
             Title = item.Title,
             Content = item.Content,
+            NotificationType = item.NotificationType,
+            RefTo = item.RefTo,
             IsRead = item.IsRead,
             Status = item.Status.ToString(),
             ErrorMessage = item.ErrorMessage,
@@ -64,7 +66,8 @@ public class NotificationController : ControllerBase
     public async Task<ActionResult<ApiSuccessResponse<NotificationHistoryResponseDto>>> MarkAsReadAsync(
         [FromRoute] Guid id)
     {
-        var command = new MarkNotificationAsReadCommand { Id = id };
+        var userId = HttpContext.GetCurrentUserId();
+        var command = new MarkNotificationAsReadCommand { Id = id, UserId = userId };
         var result = await _sender.Send(command);
 
         var response = new NotificationHistoryResponseDto
@@ -73,6 +76,8 @@ public class NotificationController : ControllerBase
             UserId = result.UserId,
             Title = result.Title,
             Content = result.Content,
+            NotificationType = result.NotificationType,
+            RefTo = result.RefTo,
             IsRead = result.IsRead,
             Status = result.Status.ToString(),
             ErrorMessage = "",

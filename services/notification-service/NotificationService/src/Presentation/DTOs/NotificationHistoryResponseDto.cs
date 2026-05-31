@@ -13,4 +13,6 @@ public class NotificationHistoryResponseDto
     public string? ErrorMessage { get; set; }
     public DateTimeOffset CreatedAt { get; set; }
     public DateTimeOffset? SentAt { get; set; }
+    public string NotificationType { get; set; } = null!;
+    public Guid? RefTo { get; set; }
 }
