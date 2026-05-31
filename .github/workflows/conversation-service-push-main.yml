@@ -144,6 +144,8 @@ jobs:
             kubectl apply -f $MANIFEST_PATH
             kubectl apply -f $SVC_MANIFEST_PATH
 
+            kubectl rollout restart deployment/conversation-service -n default
+
             kubectl rollout status deployment/conversation-service -n default || true
             kubectl get pods -l app=conversation-service -n default
             kubectl get svc conversation-service -n default

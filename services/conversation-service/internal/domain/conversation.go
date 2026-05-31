@@ -48,7 +48,6 @@ type Conversation struct {
 	UpdatedAt time.Time  `json:"updatedAt"`
 }
 
-
 type ConversationMember struct {
 	ID             uuid.UUID  `json:"id"`
 	ConversationID uuid.UUID  `json:"conversationId"`
@@ -125,6 +124,7 @@ type ConversationRepository interface {
 	RemoveMember(ctx context.Context, conversationID uuid.UUID, targetUserID uuid.UUID) error
 	LeaveConversation(ctx context.Context, conversationID uuid.UUID, userID uuid.UUID) error
 	ChangeMemberRole(ctx context.Context, conversationID uuid.UUID, targetUserID uuid.UUID, role string) error
+	SearchConversations(ctx context.Context, userID uuid.UUID, keyword string, conversationType string) ([]Conversation, error)
 }
 
 type ConversationUsecase interface {
@@ -133,6 +133,7 @@ type ConversationUsecase interface {
 
 	GetConversationDetail(ctx context.Context, currentUserID string, conversationID string) (ConversationWithMembers, error)
 	ListMyConversations(ctx context.Context, currentUserID string) ([]Conversation, error)
+	SearchConversations(ctx context.Context, currentUserID string, keyword string, conversationType string) ([]Conversation, error)
 	ListMembers(ctx context.Context, currentUserID string, conversationID string) ([]ConversationMember, error)
 
 	AddMember(ctx context.Context, currentUserID string, conversationID string, memberID string) error
