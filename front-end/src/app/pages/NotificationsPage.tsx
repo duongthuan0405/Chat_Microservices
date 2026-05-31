@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router";
 import { MessageCircle, Clock, Loader2 } from "lucide-react";
 import { notificationApi, NotificationItem } from "../../api/notificationApi";
 import { signalrService } from "../../api/signalrClient";
@@ -9,6 +10,7 @@ export function NotificationsPage() {
   const [totalCount, setTotalCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
+  const navigate = useNavigate();
 
   useEffect(() => {
     fetchNotifications(1);
@@ -51,13 +53,26 @@ export function NotificationsPage() {
     fetchNotifications(nextPage);
   };
 
-  const handleMarkAsRead = async (id: string, isRead: boolean) => {
-    if (isRead) return;
+  const handleNotificationClick = async (notification: NotificationItem) => {
     try {
-      await notificationApi.markAsRead(id);
-      setNotifications(prev => prev.map(n => n.id === id ? { ...n, isRead: true } : n));
+      if (!notification.isRead) {
+        await notificationApi.markAsRead(notification.id);
+        setNotifications((prev) =>
+          prev.map((n) => (n.id === notification.id ? { ...n, isRead: true } : n))
+        );
+      }
+      
+      // Chuyển hướng dựa trên notificationType
+      if (notification.notificationType) {
+        if (notification.notificationType.includes("FRIEND")) {
+          navigate("/chat/friends");
+        } else if (notification.notificationType.includes("GROUP") || notification.notificationType.includes("CHAT")) {
+          // Hiện tại chưa có tham số query để tự động mở nhóm, chỉ chuyển đến trang chat
+          navigate("/chat");
+        }
+      }
     } catch (error) {
-      console.error("Lỗi đánh dấu đã đọc:", error);
+      console.error("Lỗi xử lý thông báo:", error);
     }
   };
 
@@ -82,7 +97,7 @@ export function NotificationsPage() {
           {notifications.map((notification) => (
             <div
               key={notification.id}
-              onClick={() => handleMarkAsRead(notification.id, notification.isRead)}
+              onClick={() => handleNotificationClick(notification)}
               className={`flex items-start gap-4 p-4 rounded-xl transition-all cursor-pointer ${
                 notification.isRead
                   ? "bg-slate-900/30 hover:bg-slate-900/50"
