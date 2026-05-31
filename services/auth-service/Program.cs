@@ -49,7 +49,7 @@ app.MapGet("/health", () =>
 })
 .WithName("Health");
 
-app.UseHttpsRedirection();
+// app.UseHttpsRedirection();
 
 app.MapPost("/api/auth/register", async (AuthenticationService authService, RegisterRequest request) =>
 {
