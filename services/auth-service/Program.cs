@@ -6,6 +6,7 @@ using Microsoft.IdentityModel.Tokens;
 using Microsoft.AspNetCore.Http;
 using AuthService.Data;
 using AuthService;
+using Prometheus;
 
 // before CreateBuilder: load .env and ensure DEFAULT_CONNECTION_STRING exists
 DotNetEnv.Env.Load(); // loads .env into environment variables
@@ -28,14 +29,27 @@ builder.Services.AddDbContext<AuthService.Data.AuthDbContext>(options =>
 builder.Services.AddScoped<AuthenticationService>();
 
 var app = builder.Build();
+app.UseHttpMetrics(options =>
+{
+    options.AddCustomLabel("service", _ => "auth-service");
+});
 
-// Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
 }
 
-// app.UseHttpsRedirection();
+app.MapGet("/health", () =>
+{
+    return Results.Ok(new
+    {
+        success = true,
+        message = "auth-service is running"
+    });
+})
+.WithName("Health");
+
+app.UseHttpsRedirection();
 
 app.MapPost("/api/auth/register", async (AuthenticationService authService, RegisterRequest request) =>
 {
@@ -155,7 +169,7 @@ if (args != null && args.Contains("--migrate"))
     var db = scope.ServiceProvider.GetRequiredService<AuthService.Data.AuthDbContext>();
     db.Database.Migrate();
 }
-
+app.MapMetrics();
 app.Run();
 
 public sealed record DecodeTokenRequest(string Token);

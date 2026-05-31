@@ -76,6 +76,18 @@ public partial class NotificationHistory
             return this;
         }
 
+        public NotificationHistoryBuilder WithNotificationType(string notificationType)
+        {
+            o.NotificationType = notificationType;
+            return this;
+        }
+
+        public NotificationHistoryBuilder WithRefTo(Guid? refTo)
+        {
+            o.RefTo = refTo;
+            return this;
+        }
+
         public NotificationHistory Build()
         {
             if (o.Id == Guid.Empty)

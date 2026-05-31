@@ -19,12 +19,15 @@ public class SendNotificationCommand : IRequest<SendNotificationCommandResponse>
     public Guid UserId { get; set; }
     public string TemplateCode { get; set; } = null!;
     public Dictionary<string, string> Parameters { get; set; } = new();
+    public Guid? RefTo { get; set; }
 }
 
 public class SendNotificationCommandResponse
 {
     public Guid HistoryId { get; set; }
     public Guid UserId { get; set; }
+    public string NotificationType { get; set; } = null!;
+    public Guid? RefTo { get; set; }
     public string Title { get; set; } = null!;
     public string Content { get; set; } = null!;
     public DeliveryStatus Status { get; set; }
@@ -83,7 +86,9 @@ public class SendNotificationCommandHandler : IRequestHandler<SendNotificationCo
             var historyBuilder = new NotificationHistory.NotificationHistoryBuilder()
                 .WithUserId(request.UserId)
                 .WithTitle(title)
-                .WithContent(content);
+                .WithContent(content)
+                .WithNotificationType(request.TemplateCode)
+                .WithRefTo(request.RefTo);
 
             if (preference != null && !preference.EnablePush)
             {
@@ -100,6 +105,8 @@ public class SendNotificationCommandHandler : IRequestHandler<SendNotificationCo
                 {
                     HistoryId = disabledHistory.Id,
                     UserId = disabledHistory.UserId,
+                    NotificationType = disabledHistory.NotificationType,
+                    RefTo = disabledHistory.RefTo,
                     Title = disabledHistory.Title,
                     Content = disabledHistory.Content,
                     Status = disabledHistory.Status,
@@ -128,6 +135,8 @@ public class SendNotificationCommandHandler : IRequestHandler<SendNotificationCo
                     {
                         id = successHistory.Id,
                         userId = successHistory.UserId,
+                        notificationType = successHistory.NotificationType,
+                        refTo = successHistory.RefTo,
                         title = successHistory.Title,
                         content = successHistory.Content,
                         createdAt = successHistory.CreatedAt
@@ -144,6 +153,8 @@ public class SendNotificationCommandHandler : IRequestHandler<SendNotificationCo
             {
                 HistoryId = successHistory.Id,
                 UserId = successHistory.UserId,
+                NotificationType = successHistory.NotificationType,
+                RefTo = successHistory.RefTo,
                 Title = successHistory.Title,
                 Content = successHistory.Content,
                 Status = successHistory.Status,

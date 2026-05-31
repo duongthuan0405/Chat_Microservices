@@ -12,6 +12,7 @@ namespace NotificationService.Application.Features.Notifications.Commands.MarkNo
 public class MarkNotificationAsReadCommand : IRequest<MarkNotificationAsReadCommandResponse>
 {
     public Guid Id { get; set; }
+    public Guid UserId { get; set; }
 }
 
 public class MarkNotificationAsReadCommandResponse
@@ -20,6 +21,8 @@ public class MarkNotificationAsReadCommandResponse
     public Guid UserId { get; set; }
     public string Title { get; set; } = null!;
     public string Content { get; set; } = null!;
+    public string NotificationType { get; set; } = null!;
+    public Guid? RefTo { get; set; }
     public bool IsRead { get; set; }
     public DeliveryStatus Status { get; set; }
     public DateTimeOffset CreatedAt { get; set; }
@@ -51,6 +54,11 @@ public class MarkNotificationAsReadCommandHandler : IRequestHandler<MarkNotifica
                 throw new NotFoundException($"Notification with ID '{request.Id}' was not found.");
             }
 
+            if (history.UserId != request.UserId)
+            {
+                throw new UnauthorizedException("You are not authorized to mark this notification as read.");
+            }
+
             history.IsRead = true;
 
             await _historyRepository.UpdateAsync(history, cancellationToken);
@@ -62,6 +70,8 @@ public class MarkNotificationAsReadCommandHandler : IRequestHandler<MarkNotifica
                 UserId = history.UserId,
                 Title = history.Title,
                 Content = history.Content,
+                NotificationType = history.NotificationType,
+                RefTo = history.RefTo,
                 IsRead = history.IsRead,
                 Status = history.Status,
                 CreatedAt = history.CreatedAt,

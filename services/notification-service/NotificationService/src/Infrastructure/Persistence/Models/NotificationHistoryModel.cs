@@ -16,6 +16,8 @@ public class NotificationHistoryModel
     public int RetryCount { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime? SentAt { get; set; }
+    public string NotificationType { get; set; } = null!;
+    public Guid? RefTo { get; set; }
 
     public static NotificationHistoryModel FromDomain(NotificationHistory domain)
     {
@@ -30,7 +32,9 @@ public class NotificationHistoryModel
             ErrorMessage = domain.ErrorMessage,
             RetryCount = domain.RetryCount,
             CreatedAt = domain.CreatedAt.UtcDateTime,
-            SentAt = domain.SentAt?.UtcDateTime
+            SentAt = domain.SentAt?.UtcDateTime,
+            NotificationType = domain.NotificationType,
+            RefTo = domain.RefTo
         };
     }
 
@@ -47,6 +51,8 @@ public class NotificationHistoryModel
             .WithRetryCount(RetryCount)
             .WithCreatedAt(new DateTimeOffset(CreatedAt, TimeSpan.Zero))
             .WithSentAt(SentAt.HasValue ? new DateTimeOffset(SentAt.Value, TimeSpan.Zero) : null)
+            .WithNotificationType(NotificationType)
+            .WithRefTo(RefTo)
             .Build();
     }
 }
