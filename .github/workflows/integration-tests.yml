@@ -36,7 +36,7 @@ jobs:
       - name: Create .env file
         run: |
           cat > .env << 'EOF'
-          BASE_URL=${{ secrets.INTEGRATION_BASE_URL }}
+          BASE_URL=${{ secrets.BASE_URL }}
           AUTH_LOGIN_PATH=${{ secrets.AUTH_LOGIN_PATH }}
           AUTH_REGISTER_PATH=${{ secrets.AUTH_REGISTER_PATH }}
           TEST_USER_MODE=${{ secrets.TEST_USER_MODE }}
