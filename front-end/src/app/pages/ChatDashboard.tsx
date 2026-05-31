@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { Avatar } from "../../components/Avatar";
 import {
   Search,
   MoreVertical,
@@ -10,9 +11,11 @@ import {
   Loader2,
   Users,
   Check,
-  MessageCircle
+  MessageCircle,
+  UserPlus,
+  LogOut
 } from "lucide-react";
-import { conversationApi, ConversationResponse } from "../../api/conversationApi";
+import { conversationApi, ConversationResponse, ConversationMember } from "../../api/conversationApi";
 import { friendshipApi, FriendResponse } from "../../api/friendshipApi";
 import { messageApi } from "../../api/messageApi";
 import { authApi } from "../../api/authApi";
@@ -48,6 +51,112 @@ export function ChatDashboard() {
   const [friends, setFriends] = useState<FriendResponse[]>([]);
   const [selectedFriends, setSelectedFriends] = useState<string[]>([]);
   const [creating, setCreating] = useState(false);
+
+  // Group Management States
+  const [groupMembers, setGroupMembers] = useState<ConversationMember[]>([]);
+  const [showAddMemberModal, setShowAddMemberModal] = useState(false);
+  const [friendsToAdd, setFriendsToAdd] = useState<string[]>([]);
+  const [isAddingMember, setIsAddingMember] = useState(false);
+
+  const [showTransferModal, setShowTransferModal] = useState(false);
+  const [transferToUserId, setTransferToUserId] = useState<string | null>(null);
+  const [isTransferring, setIsTransferring] = useState(false);
+
+  const fetchGroupMembers = async (conversationId: string) => {
+    try {
+      const members = await conversationApi.getMembers(conversationId);
+      const profiles = await Promise.all(
+        members.map(async (m: any) => {
+          const userId = m.userId || m.user_id || m.id;
+          try {
+            const req = await authApi.getProfile(userId);
+            const data = req.data || req;
+            return { ...m, name: data.name || m.name, avatarUrl: data.avatarUrl || m.avatarUrl };
+          } catch {
+            return m;
+          }
+        })
+      );
+      setGroupMembers(profiles);
+    } catch (error) {
+      console.error("Lỗi tải thành viên nhóm:", error);
+    }
+  };
+
+  useEffect(() => {
+    if (selectedChat?.isGroup) {
+      fetchGroupMembers(selectedChat.id);
+    } else {
+      setGroupMembers([]);
+    }
+  }, [selectedChat?.id]);
+
+  const handleLeaveGroup = async () => {
+    if (!selectedChat) return;
+
+    const currentUserId = localStorage.getItem("user_id");
+    const currentUserMember = groupMembers.find((m: any) => (m.userId || m.user_id || m.id) === currentUserId);
+
+    if (currentUserMember?.role === 'OWNER') {
+      setShowTransferModal(true);
+      return;
+    }
+
+    if (window.confirm("Bạn có chắc chắn muốn rời nhóm này?")) {
+      try {
+        await conversationApi.leaveGroup(selectedChat.id);
+        toast.success("Đã rời nhóm");
+        setSelectedChat(null);
+        fetchConversations();
+      } catch (error: any) {
+        toast.error(error?.response?.data?.message || "Lỗi khi rời nhóm");
+      }
+    }
+  };
+
+  const handleTransferAndLeave = async () => {
+    if (!selectedChat || !transferToUserId) return;
+    setIsTransferring(true);
+    try {
+      // 1. Chuyển quyền (User nói ADMIN là owner)
+      await conversationApi.changeRole(selectedChat.id, transferToUserId, 'ADMIN');
+      
+      // 2. Rời nhóm
+      await conversationApi.leaveGroup(selectedChat.id);
+      
+      toast.success("Đã chuyển quyền và rời nhóm");
+      setShowTransferModal(false);
+      setSelectedChat(null);
+      fetchConversations();
+    } catch (error: any) {
+      toast.error(error?.response?.data?.message || "Lỗi khi chuyển quyền và rời nhóm");
+    } finally {
+      setIsTransferring(false);
+    }
+  };
+
+  const handleAddMembersToGroup = async () => {
+    if (!selectedChat || friendsToAdd.length === 0) return;
+    setIsAddingMember(true);
+    try {
+      for (const friendId of friendsToAdd) {
+        await conversationApi.addMember(selectedChat.id, friendId);
+      }
+      toast.success("Đã thêm thành viên");
+      setShowAddMemberModal(false);
+      setFriendsToAdd([]);
+      fetchGroupMembers(selectedChat.id);
+      fetchConversations(); // Update member count
+    } catch (error) {
+      toast.error("Có lỗi xảy ra khi thêm thành viên");
+    } finally {
+      setIsAddingMember(false);
+    }
+  };
+
+  const toggleFriendToAdd = (id: string) => {
+    setFriendsToAdd(prev => prev.includes(id) ? prev.filter(f => f !== id) : [...prev, id]);
+  };
 
   useEffect(() => {
     fetchConversations();
@@ -298,10 +407,10 @@ export function ChatDashboard() {
       <div className="w-full md:w-80 lg:w-96 flex-shrink-0 bg-slate-950/30 backdrop-blur-xl border-r border-white/10 flex flex-col">
         <div className="p-4 border-b border-white/10">
           <div className="flex items-center gap-3 mb-4 cursor-pointer hover:bg-white/5 p-2 rounded-xl transition-all">
-            <img
-              src={currentUser?.avatarUrl || "https://api.dicebear.com/7.x/avataaars/svg?seed=currentuser"}
+            <Avatar
+              src={currentUser?.avatarUrl}
               alt="User"
-              className="w-12 h-12 rounded-full ring-2 ring-cyan-500/50 bg-slate-800"
+              className="w-12 h-12 rounded-full ring-2 ring-cyan-500/50 bg-slate-800 overflow-hidden flex-shrink-0"
             />
             <div className="flex-1">
               <h3 className="text-white font-semibold truncate">{currentUser ? currentUser.name : "Đang tải..."}</h3>
@@ -351,10 +460,11 @@ export function ChatDashboard() {
                 }`}
               >
                 <div className="relative">
-                  <img
-                    src={chat.avatarUrl || `https://api.dicebear.com/7.x/${chat.isGroup ? 'identicon' : 'avataaars'}/svg?seed=${chat.id}`}
+                  <Avatar
+                    src={chat.avatarUrl}
                     alt={chat.name}
-                    className="w-12 h-12 rounded-full bg-slate-800"
+                    className="w-12 h-12 rounded-full bg-slate-800 overflow-hidden"
+                    isGroup={chat.isGroup}
                   />
                   {chat.unreadCount && chat.unreadCount > 0 ? (
                     <span className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-red-500 rounded-full border-2 border-slate-900"></span>
@@ -393,10 +503,11 @@ export function ChatDashboard() {
           <div className="h-16 px-6 flex items-center justify-between bg-slate-950/30 backdrop-blur-xl border-b border-white/10">
             <div className="flex items-center gap-3">
               <div className="relative">
-                <img
-                  src={selectedChat.avatarUrl || `https://api.dicebear.com/7.x/${selectedChat.isGroup ? 'identicon' : 'avataaars'}/svg?seed=${selectedChat.id}`}
+                <Avatar
+                  src={selectedChat.avatarUrl}
                   alt={selectedChat.name}
-                  className="w-10 h-10 rounded-full bg-slate-800"
+                  className="w-10 h-10 rounded-full bg-slate-800 overflow-hidden"
+                  isGroup={selectedChat.isGroup}
                 />
               </div>
               <div>
@@ -492,10 +603,11 @@ export function ChatDashboard() {
         <div className="hidden lg:block w-80 bg-slate-950/30 backdrop-blur-xl border-l border-white/10 overflow-y-auto custom-scrollbar">
           <div className="p-6">
             <div className="text-center mb-6">
-              <img
-                src={selectedChat.avatarUrl || `https://api.dicebear.com/7.x/${selectedChat.isGroup ? 'identicon' : 'avataaars'}/svg?seed=${selectedChat.id}`}
+              <Avatar
+                src={selectedChat.avatarUrl}
                 alt={selectedChat.name}
-                className="w-24 h-24 rounded-full mx-auto mb-4 bg-slate-800"
+                className="w-24 h-24 rounded-full mx-auto mb-4 bg-slate-800 overflow-hidden"
+                isGroup={selectedChat.isGroup}
               />
               <h3 className="text-white text-xl font-bold mb-1">
                 {selectedChat.name}
@@ -516,6 +628,50 @@ export function ChatDashboard() {
                     </div>
                   </div>
                 </div>
+              )}
+
+              {selectedChat.isGroup && (
+                <>
+                  <div className="bg-slate-800/30 rounded-xl p-4 flex flex-col max-h-[300px]">
+                    <div className="flex items-center justify-between mb-3 shrink-0">
+                      <h4 className="text-white font-semibold flex items-center gap-2">
+                        <Users className="w-4 h-4 text-cyan-400" />
+                        Thành viên ({groupMembers.length})
+                      </h4>
+                      <button
+                        onClick={() => {
+                          setFriendsToAdd([]);
+                          setShowAddMemberModal(true);
+                        }}
+                        className="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center hover:bg-cyan-500/20 hover:text-cyan-400 transition-all text-white/60"
+                        title="Thêm thành viên"
+                      >
+                        <UserPlus className="w-4 h-4" />
+                      </button>
+                    </div>
+                    <div className="space-y-2 overflow-y-auto custom-scrollbar pr-1 flex-1">
+                      {groupMembers.map((member: any) => (
+                        <div key={member.id} className="flex items-center gap-3 p-2 bg-slate-800/50 rounded-lg hover:bg-slate-800/80 transition-colors">
+                          <Avatar src={member.avatarUrl} alt={member.name} className="w-8 h-8 rounded-full bg-slate-700 overflow-hidden shrink-0" />
+                          <div className="flex-1 min-w-0">
+                            <p className="text-white text-sm font-medium truncate">{member.name || "Người dùng"}</p>
+                            <p className="text-white/40 text-[10px] uppercase tracking-wider">
+                              {member.role === 'OWNER' ? 'Trưởng nhóm' : member.role === 'ADMIN' ? 'Quản trị viên' : 'Thành viên'}
+                            </p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <button
+                    onClick={handleLeaveGroup}
+                    className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-red-500/10 text-red-400 rounded-xl hover:bg-red-500/20 transition-all font-medium border border-red-500/20"
+                  >
+                    <LogOut className="w-4 h-4" />
+                    Rời khỏi nhóm
+                  </button>
+                </>
               )}
 
               <div className="bg-slate-800/30 rounded-xl p-4">
@@ -578,10 +734,10 @@ export function ChatDashboard() {
                           selectedFriends.includes(friend.id) ? "bg-cyan-500/20 border border-cyan-500/50" : "hover:bg-slate-800/50 border border-transparent"
                         }`}
                       >
-                        <img
-                          src={friend.avatarUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${friend.id}`}
+                        <Avatar
+                          src={friend.avatarUrl}
                           alt={friend.name}
-                          className="w-8 h-8 rounded-full bg-slate-800"
+                          className="w-8 h-8 rounded-full bg-slate-800 overflow-hidden"
                         />
                         <span className="text-white text-sm flex-1 truncate">{friend.name}</span>
                         {selectedFriends.includes(friend.id) && (
@@ -609,6 +765,156 @@ export function ChatDashboard() {
                 className="flex-1 px-4 py-3 rounded-xl bg-gradient-to-br from-cyan-500 to-blue-500 text-white font-semibold hover:shadow-lg hover:shadow-cyan-500/50 transition-all disabled:opacity-50 flex items-center justify-center"
               >
                 {creating ? <Loader2 className="w-5 h-5 animate-spin" /> : "Tạo nhóm"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Thêm Thành Viên */}
+      {showAddMemberModal && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-slate-900/95 backdrop-blur-xl rounded-2xl border border-white/10 p-8 max-w-md w-full max-h-[90vh] flex flex-col shadow-2xl">
+            <div className="flex items-center justify-between mb-6 shrink-0 border-b border-white/10 pb-4">
+              <h2 className="text-2xl font-bold text-white">Thêm thành viên</h2>
+              <button
+                onClick={() => setShowAddMemberModal(false)}
+                className="w-8 h-8 rounded-lg flex items-center justify-center text-white/60 hover:text-white hover:bg-white/10 transition-all"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="space-y-6 overflow-y-auto custom-scrollbar pr-2 flex-1 min-h-0">
+              <div>
+                <label className="block text-white/80 mb-2 text-sm font-medium">
+                  Chọn bạn bè ({friendsToAdd.length})
+                </label>
+                {friends.length === 0 ? (
+                  <p className="text-white/40 text-sm">Bạn chưa có bạn bè nào để thêm.</p>
+                ) : (
+                  <div className="space-y-2 max-h-48 overflow-y-auto custom-scrollbar pr-2 border border-white/10 p-2 rounded-xl bg-slate-800/20">
+                    {friends.map((friend) => {
+                      // Không hiển thị những người đã có trong nhóm
+                      const isAlreadyMember = groupMembers.some((m: any) => 
+                        (m.userId || m.user_id || m.id) === friend.id
+                      );
+                      if (isAlreadyMember) return null;
+
+                      return (
+                        <div
+                          key={friend.id}
+                          onClick={() => toggleFriendToAdd(friend.id)}
+                          className={`flex items-center gap-3 p-2 rounded-lg cursor-pointer transition-colors ${
+                            friendsToAdd.includes(friend.id) ? "bg-cyan-500/20 border border-cyan-500/50" : "hover:bg-slate-800/50 border border-transparent"
+                          }`}
+                        >
+                          <Avatar
+                            src={friend.avatarUrl}
+                            alt={friend.name}
+                            className="w-8 h-8 rounded-full bg-slate-800 overflow-hidden"
+                          />
+                          <span className="text-white text-sm flex-1 truncate">{friend.name}</span>
+                          {friendsToAdd.includes(friend.id) && (
+                            <div className="w-4 h-4 rounded-full bg-cyan-500 flex items-center justify-center">
+                              <Check className="w-3 h-3 text-white" />
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="flex gap-3 pt-6 shrink-0 mt-6 border-t border-white/10">
+              <button
+                onClick={() => setShowAddMemberModal(false)}
+                className="flex-1 px-4 py-3 rounded-xl bg-white/10 text-white font-semibold hover:bg-white/20 transition-all"
+              >
+                Hủy
+              </button>
+              <button
+                onClick={handleAddMembersToGroup}
+                disabled={isAddingMember || friendsToAdd.length === 0}
+                className="flex-1 px-4 py-3 rounded-xl bg-gradient-to-br from-cyan-500 to-blue-500 text-white font-semibold hover:shadow-lg hover:shadow-cyan-500/50 transition-all disabled:opacity-50 flex items-center justify-center"
+              >
+                {isAddingMember ? <Loader2 className="w-5 h-5 animate-spin" /> : "Thêm"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Chuyển Quyền */}
+      {showTransferModal && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-slate-900/95 backdrop-blur-xl rounded-2xl border border-white/10 p-8 max-w-md w-full max-h-[90vh] flex flex-col shadow-2xl">
+            <div className="flex items-center justify-between mb-6 shrink-0 border-b border-white/10 pb-4">
+              <h2 className="text-2xl font-bold text-white">Chuyển quyền Trưởng nhóm</h2>
+              <button
+                onClick={() => setShowTransferModal(false)}
+                className="w-8 h-8 rounded-lg flex items-center justify-center text-white/60 hover:text-white hover:bg-white/10 transition-all"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <p className="text-white/60 text-sm mb-4 shrink-0">
+              Bạn cần chuyển quyền trưởng nhóm cho một thành viên khác trước khi rời đi.
+            </p>
+
+            <div className="space-y-2 overflow-y-auto custom-scrollbar pr-2 flex-1 min-h-0">
+              {groupMembers
+                .filter(m => (m.userId || m.user_id || m.id) !== localStorage.getItem("user_id"))
+                .map(member => {
+                  const memberId = member.userId || member.user_id || member.id;
+                  return (
+                    <div
+                      key={member.id}
+                      onClick={() => setTransferToUserId(memberId)}
+                      className={`flex items-center gap-3 p-3 rounded-xl cursor-pointer transition-colors ${
+                        transferToUserId === memberId ? "bg-cyan-500/20 border border-cyan-500/50" : "bg-slate-800/30 hover:bg-slate-800/50 border border-transparent"
+                      }`}
+                    >
+                      <Avatar
+                        src={member.avatarUrl}
+                        alt={member.name}
+                        className="w-10 h-10 rounded-full bg-slate-800 overflow-hidden"
+                      />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-white text-sm font-medium truncate">{member.name || "Người dùng"}</p>
+                      </div>
+                      {transferToUserId === memberId && (
+                        <div className="w-5 h-5 rounded-full bg-cyan-500 flex items-center justify-center">
+                          <Check className="w-3 h-3 text-white" />
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              
+              {groupMembers.length <= 1 && (
+                <p className="text-center text-white/40 text-sm mt-4">
+                  Nhóm chỉ có mình bạn, hiện tại không có ai để chuyển quyền. (Nếu cần, bạn có thể xóa nhóm - hiện chưa hỗ trợ).
+                </p>
+              )}
+            </div>
+
+            <div className="flex gap-3 pt-6 shrink-0 mt-6 border-t border-white/10">
+              <button
+                onClick={() => setShowTransferModal(false)}
+                className="flex-1 px-4 py-3 rounded-xl bg-white/10 text-white font-semibold hover:bg-white/20 transition-all"
+              >
+                Hủy
+              </button>
+              <button
+                onClick={handleTransferAndLeave}
+                disabled={isTransferring || !transferToUserId}
+                className="flex-1 px-4 py-3 rounded-xl bg-gradient-to-br from-red-500 to-rose-600 text-white font-semibold hover:shadow-lg hover:shadow-red-500/50 transition-all disabled:opacity-50 flex items-center justify-center"
+              >
+                {isTransferring ? <Loader2 className="w-5 h-5 animate-spin" /> : "Chuyển quyền & Rời đi"}
               </button>
             </div>
           </div>
