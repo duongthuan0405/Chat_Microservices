@@ -8,7 +8,7 @@ metadata:
   annotations:
     kubernetes.io/ingress.class: nginx
     nginx.ingress.kubernetes.io/enable-cors: "true"
-    nginx.ingress.kubernetes.io/cors-allow-origin: "http://localhost:5173,http://127.0.0.1:5173,http://20.196.144.168,http://tmd.koreacentral.cloudapp.azure.com,https://20.196.144.168,https://tmd.koreacentral.cloudapp.azure.com"
+    nginx.ingress.kubernetes.io/cors-allow-origin: "http://localhost:5173"
     nginx.ingress.kubernetes.io/cors-allow-methods: "GET, PUT, POST, DELETE, PATCH, OPTIONS"
     nginx.ingress.kubernetes.io/cors-allow-headers: "DNT,Keep-Alive,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Range,Authorization,x-signalr-user-agent"
     nginx.ingress.kubernetes.io/cors-allow-credentials: "true"
@@ -54,7 +54,7 @@ metadata:
     
     # Cấu hình CORS
     nginx.ingress.kubernetes.io/enable-cors: "true"
-    nginx.ingress.kubernetes.io/cors-allow-origin: "http://localhost:5173,http://127.0.0.1:5173,http://20.196.144.168,http://tmd.koreacentral.cloudapp.azure.com,https://20.196.144.168,https://tmd.koreacentral.cloudapp.azure.com"
+    nginx.ingress.kubernetes.io/cors-allow-origin: "http://localhost:5173"
     nginx.ingress.kubernetes.io/cors-allow-methods: "GET, PUT, POST, DELETE, PATCH, OPTIONS"
     nginx.ingress.kubernetes.io/cors-allow-headers: "DNT,Keep-Alive,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Range,Authorization,x-signalr-user-agent"
     nginx.ingress.kubernetes.io/cors-allow-credentials: "true"
