@@ -22,6 +22,8 @@ public class GetNotificationHistoryByUserIdQueryResponse
     public Guid UserId { get; set; }
     public string Title { get; set; } = null!;
     public string Content { get; set; } = null!;
+    public string NotificationType { get; set; } = null!;
+    public Guid? RefTo { get; set; }
     public bool IsRead { get; set; }
     public DeliveryStatus Status { get; set; }
     public string? ErrorMessage { get; set; }
@@ -52,6 +54,8 @@ public class GetNotificationHistoryByUserIdQueryHandler : IRequestHandler<GetNot
                 UserId = item.UserId,
                 Title = item.Title,
                 Content = item.Content,
+                NotificationType = item.NotificationType,
+                RefTo = item.RefTo,
                 IsRead = item.IsRead,
                 Status = item.Status,
                 ErrorMessage = item.ErrorMessage,
