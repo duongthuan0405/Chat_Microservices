@@ -8,17 +8,18 @@ metadata:
   annotations:
     kubernetes.io/ingress.class: nginx
     nginx.ingress.kubernetes.io/enable-cors: "true"
-    nginx.ingress.kubernetes.io/cors-allow-origin: "http://localhost:5173, http://127.0.0.1:5173, https://20.196.144.168"
+    nginx.ingress.kubernetes.io/cors-allow-origin: "http://localhost:5173, http://127.0.0.1:5173, https://20.196.144.168, https://tmd.koreacentral.cloudapp.azure.com"
     nginx.ingress.kubernetes.io/cors-allow-methods: "GET, PUT, POST, DELETE, PATCH, OPTIONS"
-    nginx.ingress.kubernetes.io/cors-allow-headers: "DNT,Keep-Alive,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Range,Authorization"
+    nginx.ingress.kubernetes.io/cors-allow-headers: "DNT,Keep-Alive,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Range,Authorization,x-signalr-user-agent"
     nginx.ingress.kubernetes.io/cors-allow-credentials: "true"
 spec:
   tls:
-  - hosts:
-      - 20.196.144.168
-    secretName: chatapp-tls-secret
+    - hosts:
+        - tmd.koreacentral.cloudapp.azure.com
+      secretName: api-gateway-tls
   rules:
-  - http:
+  - host: tmd.koreacentral.cloudapp.azure.com
+    http:
       paths:
       # Auth Service (Login, Register...)
       - path: /api/auth
@@ -57,9 +58,9 @@ metadata:
     
     # Cấu hình CORS
     nginx.ingress.kubernetes.io/enable-cors: "true"
-    nginx.ingress.kubernetes.io/cors-allow-origin: "http://localhost:5173, http://127.0.0.1:5173, https://20.196.144.168"
+    nginx.ingress.kubernetes.io/cors-allow-origin: "http://localhost:5173, http://127.0.0.1:5173, https://20.196.144.168, https://tmd.koreacentral.cloudapp.azure.com"
     nginx.ingress.kubernetes.io/cors-allow-methods: "GET, PUT, POST, DELETE, PATCH, OPTIONS"
-    nginx.ingress.kubernetes.io/cors-allow-headers: "DNT,Keep-Alive,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Range,Authorization"
+    nginx.ingress.kubernetes.io/cors-allow-headers: "DNT,Keep-Alive,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Range,Authorization,x-signalr-user-agent"
     nginx.ingress.kubernetes.io/cors-allow-credentials: "true"
 
     # CẤU HÌNH AUTHENTICATION OFFLOADING
@@ -68,11 +69,12 @@ metadata:
     
 spec:
   tls:
-  - hosts:
-      - 20.196.144.168
-    secretName: chatapp-tls-secret
+    - hosts:
+        - tmd.koreacentral.cloudapp.azure.com
+      secretName: api-gateway-tls
   rules:
-  - http:
+  - host: tmd.koreacentral.cloudapp.azure.com
+    http:
       paths:
       # Chat Service (REST API + SignalR)
       - path: /api/messages
