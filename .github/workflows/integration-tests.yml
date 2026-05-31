@@ -1,0 +1,58 @@
+name: Integration Tests
+
+on:
+  workflow_dispatch:
+
+  push:
+    branches:
+      - main
+    paths:
+      - "tests/integration/**"
+      - ".github/workflows/integration-tests.yml"
+
+jobs:
+  integration-tests:
+    runs-on: ubuntu-latest
+    environment: IntegrationTestProduction
+
+    defaults:
+      run:
+        working-directory: ./tests/integration
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+          cache-dependency-path: tests/integration/package-lock.json
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Create .env file
+        run: |
+          cat > .env << 'EOF'
+          BASE_URL=${{ secrets.INTEGRATION_BASE_URL }}
+          AUTH_LOGIN_PATH=${{ secrets.AUTH_LOGIN_PATH }}
+          AUTH_REGISTER_PATH=${{ secrets.AUTH_REGISTER_PATH }}
+          TEST_USER_MODE=${{ secrets.TEST_USER_MODE }}
+          ALLOW_SELF_SIGNED_CERT=${{ secrets.ALLOW_SELF_SIGNED_CERT }}
+
+          USER_A_EMAIL=${{ secrets.USER_A_EMAIL }}
+          USER_A_PASSWORD=${{ secrets.USER_A_PASSWORD }}
+
+          USER_B_EMAIL=${{ secrets.USER_B_EMAIL }}
+          USER_B_PASSWORD=${{ secrets.USER_B_PASSWORD }}
+
+          USER_C_EMAIL=${{ secrets.USER_C_EMAIL }}
+          USER_C_PASSWORD=${{ secrets.USER_C_PASSWORD }}
+
+          EXISTING_CONVERSATION_ID=${{ secrets.EXISTING_CONVERSATION_ID }}
+          EOF
+
+      - name: Run Integration Tests
+        run: npm test
