@@ -8,6 +8,8 @@ export interface NotificationItem {
   isRead: boolean;
   status: string;
   createdAt: string;
+  notificationType?: string;
+  refTo?: string;
 }
 
 export interface NotificationResponse {

@@ -61,6 +61,11 @@ export const conversationApi = {
     return extractData(res);
   },
 
+  changeRole: async (conversationId: string, memberId: string, role: string): Promise<any> => {
+    const res = await axiosClient.patch(`/api/conversations/${conversationId}/members/${memberId}/role`, { role });
+    return extractData(res);
+  },
+
   createDirect: async (memberId: string): Promise<ConversationResponse> => {
     const res = await axiosClient.post("/api/conversations/direct", { member_id: memberId });
     return extractData(res);

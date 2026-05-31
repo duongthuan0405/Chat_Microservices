@@ -1,3 +1,4 @@
+import { Avatar } from "../../components/Avatar";
 import { Search, Check, X, UserMinus, Trash2, Users, Loader2, MessageCircle } from "lucide-react";
 import { friendshipApi, FriendResponse } from "../../api/friendshipApi";
 import { userApi } from "../../api/userApi";
@@ -203,10 +204,10 @@ export function FriendsPage() {
                       key={request.id}
                       className="flex items-center gap-4 p-4 bg-slate-800/30 rounded-xl hover:bg-slate-800/50 transition-colors"
                     >
-                      <img
-                        src={request.avatarUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${request.id}`}
+                      <Avatar
+                        src={request.avatarUrl}
                         alt={request.name}
-                        className="w-14 h-14 rounded-full bg-slate-800"
+                        className="w-14 h-14 rounded-full bg-slate-800 overflow-hidden"
                       />
                       <div className="flex-1">
                         <h3 className="text-white font-semibold">{request.name}</h3>
@@ -254,10 +255,10 @@ export function FriendsPage() {
                         key={user.id}
                         className="flex items-center gap-4 p-4 bg-slate-800/30 rounded-xl hover:bg-slate-800/50 transition-colors border border-white/5"
                       >
-                        <img
-                          src={user.avatarUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.id}`}
+                        <Avatar
+                          src={user.avatarUrl}
                           alt={user.name || user.email}
-                          className="w-12 h-12 rounded-full bg-slate-800"
+                          className="w-12 h-12 rounded-full bg-slate-800 overflow-hidden"
                         />
                         <div className="flex-1 min-w-0">
                           <h3 className="text-white font-semibold mb-1">{user.name || "Người dùng ẩn danh"}</h3>
@@ -303,10 +304,10 @@ export function FriendsPage() {
                       className="flex flex-col items-center p-5 bg-slate-800/30 rounded-2xl hover:bg-slate-800/60 transition-all cursor-pointer border border-white/5 hover:border-cyan-500/30 group hover:-translate-y-1"
                     >
                       <div className="relative mb-3">
-                        <img
-                          src={friend.avatarUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${friend.id}`}
+                        <Avatar
+                          src={friend.avatarUrl}
                           alt={friend.name}
-                          className="w-20 h-20 rounded-full bg-slate-800 object-cover ring-2 ring-white/10 group-hover:ring-cyan-500/50 transition-all"
+                          className="w-20 h-20 rounded-full bg-slate-800 object-cover ring-2 ring-white/10 group-hover:ring-cyan-500/50 transition-all overflow-hidden"
                         />
                       </div>
                       <h3 className="text-white font-semibold text-center w-full truncate px-2">{friend.name || "Người dùng"}</h3>
@@ -333,10 +334,10 @@ export function FriendsPage() {
             </div>
 
             <div className="flex items-center gap-4 p-4 bg-slate-800/30 rounded-xl mb-6">
-              <img
-                src={selectedFriend.avatarUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${selectedFriend.id}`}
+              <Avatar
+                src={selectedFriend.avatarUrl}
                 alt={selectedFriend.name}
-                className="w-12 h-12 rounded-full"
+                className="w-12 h-12 rounded-full overflow-hidden"
               />
               <div className="flex-1">
                 <h4 className="text-white font-semibold">{selectedFriend.name}</h4>
@@ -377,10 +378,10 @@ export function FriendsPage() {
             </button>
             
             <div className="flex flex-col items-center mb-6">
-              <img
-                src={friendDetail.avatarUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${friendDetail.id}`}
+              <Avatar
+                src={friendDetail.avatarUrl}
                 alt={friendDetail.name}
-                className="w-28 h-28 rounded-full bg-slate-800 object-cover ring-4 ring-cyan-500/20 mb-4"
+                className="w-28 h-28 rounded-full bg-slate-800 object-cover ring-4 ring-cyan-500/20 mb-4 overflow-hidden"
               />
               <h2 className="text-2xl font-bold text-white mb-1 text-center">{friendDetail.name}</h2>
               <p className="text-white/60 text-center">{friendDetail.email}</p>

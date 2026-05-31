@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { Avatar } from "../../components/Avatar";
 import { Camera, Calendar, Mail, Phone, Edit2, Users, MessageCircle, User as UserIcon, X } from "lucide-react";
 import { authApi } from "../../api/authApi";
 import { friendshipApi, FriendResponse } from "../../api/friendshipApi";
@@ -92,10 +93,10 @@ export function ProfilePage() {
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
             <div className="flex flex-col md:flex-row md:items-center gap-6">
               <div className="relative shrink-0">
-                <img
-                  src={profile?.avatarUrl || "https://api.dicebear.com/7.x/avataaars/svg?seed=currentuser"}
+                <Avatar
+                  src={profile?.avatarUrl}
                   alt="Profile"
-                  className="w-32 h-32 md:w-40 md:h-40 rounded-3xl ring-4 ring-slate-950 bg-slate-900 object-cover"
+                  className="w-32 h-32 md:w-40 md:h-40 rounded-3xl ring-4 ring-slate-950 bg-slate-900 object-cover overflow-hidden"
                 />
                 <button className="absolute bottom-2 right-2 w-10 h-10 rounded-full bg-gradient-to-br from-cyan-500 to-blue-500 text-white flex items-center justify-center hover:shadow-lg hover:shadow-cyan-500/50 transition-all">
                   <Camera className="w-5 h-5" />
@@ -185,10 +186,10 @@ export function ProfilePage() {
                     className="flex flex-col items-center p-4 bg-slate-800/30 rounded-2xl hover:bg-slate-800/60 transition-all cursor-pointer border border-white/5 hover:border-cyan-500/30 group hover:-translate-y-1"
                   >
                     <div className="relative mb-3">
-                      <img
-                        src={friend.avatarUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${friend.id}`}
+                      <Avatar
+                        src={friend.avatarUrl}
                         alt={friend.name}
-                        className="w-16 h-16 rounded-full bg-slate-800 object-cover ring-2 ring-white/10 group-hover:ring-cyan-500/50 transition-all"
+                        className="w-16 h-16 rounded-full bg-slate-800 object-cover ring-2 ring-white/10 group-hover:ring-cyan-500/50 transition-all overflow-hidden"
                       />
                     </div>
                     <span className="text-white/80 text-sm font-medium text-center truncate w-full group-hover:text-cyan-400 transition-colors">
@@ -315,10 +316,10 @@ export function ProfilePage() {
                     className="flex flex-col items-center p-5 bg-slate-800/30 rounded-2xl hover:bg-slate-800/60 transition-all cursor-pointer border border-white/5 hover:border-cyan-500/30 group hover:-translate-y-1"
                   >
                     <div className="relative mb-3">
-                      <img
-                        src={friend.avatarUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${friend.id}`}
+                      <Avatar
+                        src={friend.avatarUrl}
                         alt={friend.name}
-                        className="w-20 h-20 rounded-full bg-slate-800 object-cover ring-2 ring-white/10 group-hover:ring-cyan-500/50 transition-all"
+                        className="w-20 h-20 rounded-full bg-slate-800 object-cover ring-2 ring-white/10 group-hover:ring-cyan-500/50 transition-all overflow-hidden"
                       />
                     </div>
                     <h3 className="text-white font-semibold text-center w-full truncate px-2">{friend.name || "Người dùng"}</h3>
@@ -356,10 +357,10 @@ export function ProfilePage() {
             </button>
             
             <div className="flex flex-col items-center mt-2 mb-2">
-              <img
-                src={friendDetail.avatarUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${friendDetail.id}`}
+              <Avatar
+                src={friendDetail.avatarUrl}
                 alt={friendDetail.name}
-                className="w-28 h-28 rounded-full bg-slate-800 object-cover ring-4 ring-cyan-500/20 mb-4"
+                className="w-28 h-28 rounded-full bg-slate-800 object-cover ring-4 ring-cyan-500/20 mb-4 overflow-hidden"
               />
               <h2 className="text-2xl font-bold text-white mb-1 text-center">{friendDetail.name}</h2>
               <p className="text-white/60 text-center mb-6">{friendDetail.email}</p>
