@@ -1,0 +1,45 @@
+name: Front-end - Pull Request to main CI
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'services/front-end/**'
+      - '.github/workflows/front-end-pr-main.yml'
+
+jobs:
+  build:
+    name: Build and Verify
+    runs-on: ubuntu-latest
+    defaults: 
+      run: 
+        working-directory: ./front-end
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Log information
+        run: |
+          echo "Pull Request #${{ github.event.number }} opened by ${{ github.event.pull_request.user.login }}"
+          echo "Source branch: ${{ github.head_ref }}"
+          echo "Target branch: ${{ github.base_ref }}"
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: front-end/package-lock.json
+
+      - name: Restore Dependencies
+        run: npm ci
+
+      - name: Build Project
+        run: npm run build
+
+      - name: Run Tests
+        run: echo "Lmao, no tests yet :P"
+
+      
