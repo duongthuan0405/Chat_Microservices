@@ -59,7 +59,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ${{ secrets.AZURE_ACR_LOGIN_SERVER }}/${{ secrets.DOCKER_IMAGE }}
+          images: ${{ secrets.AZURE_ACR_LOGIN_SERVER }}/${{ secrets.FRONT_END_DOCKER_IMAGE }}
           tags: |
             type=sha,format=long
             type=raw,value=latest
@@ -88,9 +88,9 @@ jobs:
             
             # Pull the latest image
             podman login -u ${{ secrets.AZURE_ACR_USERNAME }} -p ${{ secrets.AZURE_ACR_PASSWORD }} ${{ secrets.AZURE_ACR_LOGIN_SERVER }}
-            podman pull ${{ secrets.AZURE_ACR_LOGIN_SERVER }}/${{ secrets.DOCKER_IMAGE }}:latest
+            podman pull ${{ secrets.AZURE_ACR_LOGIN_SERVER }}/${{ secrets.FRONT_END_DOCKER_IMAGE }}:latest
 
             podman stop ${{ secrets.FRONT_END_CONTAINER_NAME }} || true
             podman rm ${{ secrets.FRONT_END_CONTAINER_NAME }} || true
 
-            podman run -d --name ${{ secrets.FRONT_END_CONTAINER_NAME }} -e VITE_API_URL=${{ secrets.VITE_API_URL }} -p 443:80 ${{ secrets.AZURE_ACR_LOGIN_SERVER }}/${{ secrets.DOCKER_IMAGE }}:latest
+            podman run -d --name ${{ secrets.FRONT_END_CONTAINER_NAME }} -e VITE_API_URL=${{ secrets.VITE_API_URL }} -p 443:80 ${{ secrets.AZURE_ACR_LOGIN_SERVER }}/${{ secrets.FRONT_END_DOCKER_IMAGE }}:latest
