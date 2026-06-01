@@ -1,0 +1,96 @@
+name: Front-end - Push to main CI/CD
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'services/front-end/**'
+      - '.github/workflows/front-end-push-main.yml'
+
+  workflow_dispatch:
+    inputs:
+      imageTag:
+        description: Docker image tag
+        required: true
+
+jobs:
+  build-publish:
+    name: Build, Login to Azure, and Publish to ACR
+    runs-on: ubuntu-latest
+    environment: FrontEndProduction
+    env:
+      DEPLOY_DIR: /tmp/deploy-manifests-front-end-${{ github.run_id }}
+    defaults:
+      run:
+        working-directory: ./front-end/
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: front-end/package-lock.json
+
+      - name: Restore Dependencies
+        run: npm ci
+
+      - name: Build Project
+        run: npm run build
+
+      - name: Run Tests
+        run: echo "Lmao, no tests yet :P"
+
+      - name: Setup Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Azure Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ secrets.AZURE_ACR_LOGIN_SERVER }}
+          username: ${{ secrets.AZURE_ACR_USERNAME }}
+          password: ${{ secrets.AZURE_ACR_PASSWORD }}
+
+      - name: Extract Docker Metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ secrets.AZURE_ACR_LOGIN_SERVER }}/${{ secrets.DOCKER_IMAGE }}
+          tags: |
+            type=sha,format=long
+            type=raw,value=latest
+            type=raw,value=${{ github.event.inputs.imageTag }},enable=${{ github.event_name == 'workflow_dispatch' }}
+
+      - name: Build and Push Docker Image
+        uses: docker/build-push-action@v6
+        with:
+          context: ./front-end/
+          file: ./front-end/Dockerfile
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+      
+      - name: SSH into vps
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USERNAME }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          script: |
+            DEPLOY_DIR="${{ env.DEPLOY_DIR }}"
+            trap "rm -rf $DEPLOY_DIR" EXIT
+            
+            # Pull the latest image
+            podman login -u ${{ secrets.AZURE_ACR_USERNAME }} -p ${{ secrets.AZURE_ACR_PASSWORD }} ${{ secrets.AZURE_ACR_LOGIN_SERVER }}
+            podman pull ${{ secrets.AZURE_ACR_LOGIN_SERVER }}/${{ secrets.DOCKER_IMAGE }}:latest
+
+            podman stop ${{ secrets.FRONT_END_CONTAINER_NAME }} || true
+            podman rm ${{ secrets.FRONT_END_CONTAINER_NAME }} || true
+
+            podman run -d --name ${{ secrets.FRONT_END_CONTAINER_NAME }} -e VITE_API_URL=${{ secrets.VITE_API_URL }} -p 443:80 ${{ secrets.AZURE_ACR_LOGIN_SERVER }}/${{ secrets.DOCKER_IMAGE }}:latest
