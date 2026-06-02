@@ -5,8 +5,8 @@
 Chat Microservice System là hệ thống trò chuyện được xây dựng theo kiến trúc microservices, phục vụ các chức năng giao tiếp giữa người dùng như nhắn tin cá nhân, quản lý cuộc trò chuyện, kết bạn và gửi thông báo liên quan đến hoạt động chat.
 
 Dự án được tách thành nhiều service độc lập nhằm giúp hệ thống dễ mở rộng, dễ triển khai và dễ bảo trì. Mỗi service đảm nhiệm một nhóm chức năng riêng, giao tiếp với nhau thông qua HTTP API và message broker.
-<img width="1892" height="903" alt="Screenshot 2026-06-02 193006" src="https://github.com/user-attachments/assets/071e4568-1200-4810-a5d3-a5b495b34fe7" />
 
+<img width="1892" height="903" alt="Screenshot 2026-06-02 193006" src="https://github.com/user-attachments/assets/071e4568-1200-4810-a5d3-a5b495b34fe7" />
 
 
 ---
@@ -94,8 +94,8 @@ Mỗi service được đóng gói bằng Dockerfile riêng. Sau khi build image
 
 Dự án sử dụng GitHub Actions để tự động hóa quy trình phát triển. Khi có thay đổi trên repository, pipeline sẽ thực hiện các bước như build source code, chạy test, build Docker image, push image lên container registry và deploy lên server.
 
-> 
-> Ví dụ: ảnh workflow chạy thành công.
+<img width="1466" height="581" alt="Screenshot 2026-05-31 230805" src="https://github.com/user-attachments/assets/5bf681b9-1ad1-4f23-bf92-9dd7c9e2ce7a" />
+
 
 ---
 
@@ -103,8 +103,8 @@ Dự án sử dụng GitHub Actions để tự động hóa quy trình phát tri
 
 Hệ thống được tích hợp Prometheus và Grafana để theo dõi trạng thái hoạt động của các service. Prometheus thu thập metrics từ các service, sau đó Grafana sử dụng dữ liệu này để hiển thị biểu đồ như số lượng request, latency, lỗi HTTP và tình trạng service.
 
-> **Chèn ảnh dashboard Grafana tại đây**  
-> Ví dụ: biểu đồ request rate, latency, error rate.
+<img width="1529" height="788" alt="Screenshot 2026-06-01 201305" src="https://github.com/user-attachments/assets/f6472f97-2b6d-46f8-830a-345d1b133025" />
+
 
 ---
 
@@ -112,7 +112,8 @@ Hệ thống được tích hợp Prometheus và Grafana để theo dõi trạng
 
 Dự án có sử dụng kiểm thử API và kiểm thử tải bằng k6. Các bài test giúp kiểm tra khả năng phản hồi của hệ thống, đảm bảo các API riêng tư được bảo vệ bằng token và đánh giá hiệu năng khi có nhiều request đồng thời.
 
-> **Chèn ảnh kết quả k6 test tại đây**
+<img width="1038" height="345" alt="Screenshot 2026-05-31 211337" src="https://github.com/user-attachments/assets/78f1bed4-a1c7-48cf-a502-6dc4c9b556c2" />
+
 
 ---
 
