@@ -5,8 +5,9 @@
 Chat Microservice System là hệ thống trò chuyện được xây dựng theo kiến trúc microservices, phục vụ các chức năng giao tiếp giữa người dùng như nhắn tin cá nhân, quản lý cuộc trò chuyện, kết bạn và gửi thông báo liên quan đến hoạt động chat.
 
 Dự án được tách thành nhiều service độc lập nhằm giúp hệ thống dễ mở rộng, dễ triển khai và dễ bảo trì. Mỗi service đảm nhiệm một nhóm chức năng riêng, giao tiếp với nhau thông qua HTTP API và message broker.
+<img width="1892" height="903" alt="Screenshot 2026-06-02 193006" src="https://github.com/user-attachments/assets/071e4568-1200-4810-a5d3-a5b495b34fe7" />
 
-<img width="1448" height="1086" alt="Image 22_42_42 31 thg 5, 2026" src="https://github.com/user-attachments/assets/87d3a5f8-ccb3-4cc0-8558-3896801ea2e5" />
+
 
 ---
 
@@ -38,8 +39,7 @@ Hệ thống bao gồm các service chính:
 | Prometheus | Monitoring | Thu thập metrics từ service |
 | Grafana | Visualization | Hiển thị biểu đồ giám sát hệ thống |
 
-> **Chèn ảnh kiến trúc microservice tại đây**  
-> Ví dụ: API Gateway/Client gọi vào các service, service kết nối database riêng, RabbitMQ truyền event.
+<img width="1448" height="1086" alt="Image 22_42_42 31 thg 5, 2026" src="https://github.com/user-attachments/assets/87d3a5f8-ccb3-4cc0-8558-3896801ea2e5" />
 
 ---
 
@@ -49,25 +49,19 @@ Hệ thống bao gồm các service chính:
 
 Người dùng đăng nhập vào hệ thống thông qua Auth Service. Sau khi đăng nhập thành công, hệ thống trả về JWT token. Token này được frontend gửi kèm trong các request tiếp theo để xác thực người dùng khi truy cập các API riêng tư.
 
-> **Chèn ảnh luồng đăng nhập/JWT tại đây**
-
 ### 4.2. Luồng kết bạn
 
 Friendship Service xử lý các chức năng gửi lời mời kết bạn, chấp nhận lời mời và quản lý quan hệ bạn bè. Khi một lời mời kết bạn được gửi hoặc được chấp nhận, service có thể phát sinh event qua RabbitMQ để các service khác xử lý tiếp.
 
-> **Chèn ảnh luồng gửi lời mời kết bạn tại đây**
 
 ### 4.3. Luồng tạo cuộc trò chuyện
 
 Conversation Service quản lý thông tin cuộc trò chuyện, thành viên trong nhóm chat và quyền của người dùng trong từng cuộc trò chuyện. Khi người dùng tạo nhóm hoặc thêm thành viên, service sẽ kiểm tra quyền, lưu dữ liệu và phát event thông báo nếu cần.
 
-> **Chèn ảnh luồng tạo group chat / thêm thành viên tại đây**
 
 ### 4.4. Luồng nhắn tin
 
 Chat Service chịu trách nhiệm xử lý tin nhắn giữa các người dùng. Khi người dùng gửi tin nhắn, service kiểm tra quyền truy cập conversation, lưu tin nhắn và gửi dữ liệu realtime đến các thành viên liên quan.
-
-> **Chèn ảnh luồng gửi tin nhắn realtime tại đây**
 
 ---
 
@@ -92,8 +86,7 @@ Dự án sử dụng các công nghệ chính:
 
 Mỗi service được đóng gói bằng Dockerfile riêng. Sau khi build image, hệ thống được deploy lên server thông qua Kubernetes/k3s. Các thành phần như Deployment, Service, Secret và ConfigMap được sử dụng để quản lý container, biến môi trường và cấu hình kết nối.
 
-> **Chèn ảnh màn hình Kubernetes pods/services tại đây**  
-> Ví dụ: kết quả lệnh `kubectl get pods`, `kubectl get services`.
+<img width="745" height="199" alt="Screenshot 2026-05-31 234852" src="https://github.com/user-attachments/assets/9a837b3a-fb1b-4c8f-8b33-6406ccb36cf7" />
 
 ---
 
